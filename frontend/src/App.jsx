@@ -15,6 +15,7 @@ import EmployeeDetails from "./pages/EmployeeDetails";
 import Users from "./pages/Users";
 import CreateUser from "./pages/CreateUser";
 import EditUser from "./pages/EditUser";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboardRoute from "./components/AdminDashboardRoute";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<AdminDashboardRoute><Dashboard /></AdminDashboardRoute>} />
                 <Route path="/my-dashboard" element={<ProtectedRoute allowedRole="Employee"><EmployeeDashboard /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/employees" element={admin(<Employees />)} />
                 <Route path="/employee/:id" element={admin(<EmployeeDetails />)} />
                 <Route path="/add-employee" element={admin(<AddEmployee />)} />

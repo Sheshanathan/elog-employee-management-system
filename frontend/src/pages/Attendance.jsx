@@ -148,20 +148,14 @@ function Attendance() {
             </div>
 
             {isAdmin && (
-                <div className="card" style={{ marginBottom: "var(--spacing-8)" }}>
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 220px",
-                            gap: "var(--spacing-4)",
-                            padding: "var(--spacing-4)",
-                        }}
-                    >
-                        <div>
+                <div className="card" style={{ marginBottom: "var(--spacing-6)" }}>
+                    <div className="filters-row">
+                        <div className="filter-field">
                             <label className="form-label">Search</label>
                             <input
                                 type="text"
-                                placeholder="By employee name or ID..."
+                                className="search-box-sm"
+                                placeholder="Employee name or ID..."
                                 value={search}
                                 onChange={(event) => {
                                     setSearch(event.target.value);
@@ -169,9 +163,10 @@ function Attendance() {
                                 }}
                             />
                         </div>
-                        <div>
+                        <div className="filter-field">
                             <label className="form-label">Status</label>
                             <select
+                                className="filter-select-sm"
                                 value={statusFilter}
                                 onChange={(event) => {
                                     setStatusFilter(event.target.value);

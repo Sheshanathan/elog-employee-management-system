@@ -97,18 +97,21 @@ function Users() {
                 </div>
             </div>
 
-            <div className="card" style={{ marginBottom: 'var(--spacing-8)' }}>
-                <div style={{ padding: 'var(--spacing-4)' }}>
-                    <label className="form-label">Search Users</label>
-                    <input
-                        type="text"
-                        placeholder="By name or email..."
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
+            <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
+                <div className="filters-row">
+                    <div className="filter-field">
+                        <label className="form-label">Search Users</label>
+                        <input
+                            type="text"
+                            className="search-box-sm"
+                            placeholder="By name or email..."
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
 

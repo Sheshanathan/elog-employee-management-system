@@ -119,13 +119,14 @@ function Employees() {
             </div>
 
             {/* Filters */}
-            <div className="card" style={{ marginBottom: 'var(--spacing-8)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)', padding: 'var(--spacing-4)' }}>
-                    <div>
+            <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
+                <div className="filters-row">
+                    <div className="filter-field">
                         <label className="form-label">Search</label>
                         <input
                             type="text"
-                            placeholder="By name, ID, or department..."
+                            className="search-box-sm"
+                            placeholder="Name, ID, department..."
                             value={search}
                             onChange={(e) => {
                                 setSearch(e.target.value);
@@ -133,9 +134,10 @@ function Employees() {
                             }}
                         />
                     </div>
-                    <div>
+                    <div className="filter-field">
                         <label className="form-label">Status</label>
                         <select
+                            className="filter-select-sm"
                             value={statusFilter}
                             onChange={(e) => {
                                 setStatusFilter(e.target.value);

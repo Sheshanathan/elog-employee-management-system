@@ -239,95 +239,101 @@ function EditEmployee() {
                 </div>
             </div>
 
-            <div className="form-container">
+            <div className="form-container" style={{ maxWidth: 880 }}>
                 <form onSubmit={handleSubmit}>
-                    <FormField
-                        label="Full Name"
-                        name="name"
-                        type="text"
-                        value={formData.name}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.name}
-                        required
-                        placeholder="Enter full name"
-                    />
+                    <div className="form-row">
+                        <FormField
+                            label="Full Name"
+                            name="name"
+                            type="text"
+                            value={formData.name}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.name}
+                            required
+                            placeholder="Enter full name"
+                        />
 
-                    <FormField
-                        label="Department"
-                        name="department"
-                        type="select"
-                        value={formData.department}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.department}
-                        required
-                        options={departmentOptions}
-                        emptyLabel="Select Department"
-                        helperText={
-                            departmentOptions.length === 0
-                                ? "No active departments available. Please create a department first."
-                                : undefined
-                        }
-                    />
+                        <FormField
+                            label="Employment Status"
+                            name="status"
+                            type="select"
+                            value={formData.status}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.status}
+                            required
+                            options={[
+                                { value: "Active", label: "Active" },
+                                { value: "Inactive", label: "Inactive" }
+                            ]}
+                        />
+                    </div>
 
-                    <FormField
-                        label="Designation"
-                        name="designation"
-                        type="select"
-                        value={formData.designation}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.designation}
-                        required
-                        options={designationOptions}
-                        emptyLabel="Select Designation"
-                        helperText={
-                            designationOptions.length === 0
-                                ? "No active designations available. Please create a designation first."
-                                : undefined
-                        }
-                    />
+                    <div className="form-row">
+                        <FormField
+                            label="Department"
+                            name="department"
+                            type="select"
+                            value={formData.department}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.department}
+                            required
+                            options={departmentOptions}
+                            emptyLabel="Select Department"
+                            helperText={
+                                departmentOptions.length === 0
+                                    ? "No active departments available. Please create a department first."
+                                    : undefined
+                            }
+                        />
 
-                    <FormField
-                        label="Joining Date"
-                        name="joiningDate"
-                        type="date"
-                        value={formData.joiningDate}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.joiningDate}
-                        max={new Date().toISOString().split("T")[0]}
-                    />
+                        <FormField
+                            label="Designation"
+                            name="designation"
+                            type="select"
+                            value={formData.designation}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.designation}
+                            required
+                            options={designationOptions}
+                            emptyLabel="Select Designation"
+                            helperText={
+                                designationOptions.length === 0
+                                    ? "No active designations available. Please create a designation first."
+                                    : undefined
+                            }
+                        />
+                    </div>
 
-                    <FormField
-                        label="Salary"
-                        name="salary"
-                        type="number"
-                        value={formData.salary}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.salary}
-                        required
-                        placeholder="Enter salary"
-                        min="0"
-                        step="0.01"
-                    />
+                    <div className="form-row">
+                        <FormField
+                            label="Joining Date"
+                            name="joiningDate"
+                            type="date"
+                            value={formData.joiningDate}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.joiningDate}
+                            max={new Date().toISOString().split("T")[0]}
+                        />
 
-                    <FormField
-                        label="Employment Status"
-                        name="status"
-                        type="select"
-                        value={formData.status}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.status}
-                        required
-                        options={[
-                            { value: "Active", label: "Active" },
-                            { value: "Inactive", label: "Inactive" }
-                        ]}
-                    />
+                        <FormField
+                            label="Salary"
+                            name="salary"
+                            type="number"
+                            value={formData.salary}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.salary}
+                            required
+                            placeholder="Enter salary"
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
 
                     <div className="form-actions">
                         <button

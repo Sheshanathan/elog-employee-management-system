@@ -1,22 +1,17 @@
 import Navbar from "./Navbar";
-import Sidebar from "./Sidebar";
-import '../styles/design-system.css';
+import "../styles/design-system.css";
 
 function Layout({ children }) {
-
     return (
-        <div className="layout-container">
-            <Sidebar />
-            <div className="layout-main">
-                <div className="layout-navbar">
-                    <Navbar />
-                </div>
-                <div className="layout-content">
-                    {children}
-                </div>
+        <div className="layout-container layout-container--topnav">
+            <div className="layout-navbar">
+                <Navbar />
+            </div>
+            <div className="layout-content layout-content--topnav">
+                {children}
             </div>
         </div>
     );
-
 }
+
 export default Layout;
