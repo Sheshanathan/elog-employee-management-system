@@ -1,0 +1,2 @@
+const router=require("express").Router(); const auth=require("../middleware/auth"); const admin=require("../middleware/admin"); const correction=require("../controllers/correctionController");
+router.post("/attendance-corrections",auth,correction.create); router.get("/attendance-corrections/my",auth,correction.my); router.get("/attendance-corrections",auth,admin,correction.list); router.patch("/attendance-corrections/:id/review",auth,admin,correction.review); module.exports=router;

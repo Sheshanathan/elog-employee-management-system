@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Fetch Demo</title>
+  </head>
+  <body>
+    <h1>Employee List</h1>
+    <script>
+      fetch("http://localhost:3000/employees")
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
+          console.log(data);
+        });
+    </script>
+  </body>
+</html>
