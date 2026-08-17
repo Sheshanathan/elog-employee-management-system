@@ -9,6 +9,9 @@ import { getDesignationName } from "../utils/designation";
 import { matchesSearch } from "../utils/search";
 import { formatCurrency } from "../utils/currency";
 import '../styles/design-system.css';
+import { useRef } from "react";
+import { downloadCSV, parseCSV } from "../utils/csv";
+
 
 function formatShortDate(value) {
     if (!value) return '—';
@@ -27,6 +30,8 @@ function Employees() {
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, employeeId: null, employeeName: '' });
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef(null);
 
     const employeesPerPage = 10;
     const navigate = useNavigate();
@@ -85,6 +90,41 @@ function Employees() {
 
         return matchesSearchQuery && matchesStatus;
     });
+    const handleExport = () => {
+    downloadCSV("employees", filteredEmployees, [
+        { key: "employeeId", label: "Employee ID" },
+        { key: "name", label: "Name" },
+        { label: "Department", format: (e) => getDepartmentName(e.department) },
+        { label: "Designation", format: (e) => getDesignationName(e.designation) },
+        { label: "Joining Date", format: (e) => formatShortDate(e.joiningDate) },
+        { key: "salary", label: "Salary" },
+        { key: "status", label: "Status" },
+    ]);
+};
+
+const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setImporting(true);
+    try {
+        const rows = parseCSV(await file.text());
+        if (rows.length === 0) { toast.error("The CSV file has no data rows"); return; }
+
+        const response = await api.post("/employees/import", { employees: rows });
+        const { created, failed = [] } = response.data;
+
+        if (created > 0) toast.success(`Imported ${created} employee(s) successfully`);
+        if (failed.length > 0) toast.error(`${failed.length} row(s) failed — row ${failed[0].row}: ${failed[0].message}`);
+
+        loadEmployees();
+    } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to import employees");
+    } finally {
+        setImporting(false);
+    }
+};
 
     const totalPages = Math.max(
         1,
@@ -112,45 +152,50 @@ function Employees() {
                     <p>Manage employee records</p>
                 </div>
                 <div className="page-actions">
-                    <button className="btn btn-primary" onClick={() => navigate('/add-employee')}>
-                        Add Employee
-                    </button>
-                </div>
+    <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportFile} />
+    <button className="btn btn-secondary" onClick={handleExport}>Export CSV</button>
+    <button
+        className={`btn btn-secondary ${importing ? "is-loading" : ""}`}
+        onClick={() => fileInputRef.current?.click()}
+        disabled={importing}
+    >
+        {importing ? "Importing..." : "Import CSV"}
+    </button>
+    <button className="btn btn-primary" onClick={() => navigate('/add-employee')}>Add Employee</button>
+</div>
             </div>
 
-            {/* Filters */}
-            <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
-                <div className="filters-row">
-                    <div className="filter-field">
-                        <label className="form-label">Search</label>
-                        <input
-                            type="text"
-                            className="search-box-sm"
-                            placeholder="Name, ID, department..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        />
-                    </div>
-                    <div className="filter-field">
-                        <label className="form-label">Status</label>
-                        <select
-                            className="filter-select-sm"
-                            value={statusFilter}
-                            onChange={(e) => {
-                                setStatusFilter(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value="All">All Status</option>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+           {/* Filters */}
+<div className="filters-row filters-row--plain">
+    <div className="filter-field">
+        <label className="form-label">Search</label>
+        <input
+            type="text"
+            className="search-box-sm"
+            placeholder="Name, ID, department..."
+            value={search}
+            onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+            }}
+        />
+    </div>
+    <div className="filter-field">
+        <label className="form-label">Status</label>
+        <select
+            className="filter-select-sm"
+            value={statusFilter}
+            onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+            }}
+        >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+        </select>
+    </div>
+</div>
 
             <ResultsSummary
                 shown={currentEmployees.length}

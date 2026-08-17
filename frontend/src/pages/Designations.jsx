@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { getDepartmentName } from "../utils/department";
 import { matchesSearch } from "../utils/search";
 import "../styles/design-system.css";
+import { downloadCSV } from "../utils/csv";
 
 function Designations() {
     const [designations, setDesignations] = useState([]);
@@ -36,6 +37,13 @@ function Designations() {
         designation: null
     });
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const handleExport = () => {
+    downloadCSV("designations", filteredDesignations, [
+        { key: "name", label: "Name" },
+        { key: "description", label: "Description" },
+        { key: "status", label: "Status" },
+    ]);
+};
 
     const role = localStorage.getItem("role");
 
@@ -225,24 +233,28 @@ function Designations() {
     return (
         <Layout>
             <div className="departments-page">
-                <div className="page-header">
-                    <div className="page-title-section">
-                        <h1>Designations</h1>
-                        <p>Manage employee role designations</p>
-                    </div>
-
-                    {role === "Admin" && (
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => {
-                                resetForm();
-                                setShowForm(true);
-                            }}
-                        >
-                            Add Designation
-                        </button>
-                    )}
-                </div>
+               <div className="page-header">
+    <div className="page-title-section">
+        <h1>Designations</h1>
+        <p>Manage employee role designations</p>
+    </div>
+    <div className="page-actions">
+        <button className="btn btn-secondary" onClick={handleExport}>
+            Export CSV
+        </button>
+        {role === "Admin" && (
+            <button
+                className="btn btn-primary"
+                onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                }}
+            >
+                Add Designation
+            </button>
+        )}
+    </div>
+</div>
 
                 <div className="department-filters">
                     <input

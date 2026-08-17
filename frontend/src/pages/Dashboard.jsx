@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 import Layout from "../components/Layout";
+import { downloadCSV } from "../utils/csv";
 import { Card, LoadingSpinner } from "../components/FormField";
 import { getDepartmentName } from "../utils/department";
 import { formatCurrency } from "../utils/currency";
@@ -127,45 +128,41 @@ function Dashboard() {
                     </Card>
                 </div>
 
-                {/* Department Report — internally scrollable so it never pushes the page height */}
-                <h3>Department Report</h3>
+             {/* Department Report */}
+<div className="page-header" style={{ marginBottom: 'var(--spacing-3)' }}>
+    <h3 style={{ marginBottom: 0 }}>Department Report</h3>
+    {departmentReport.length > 0 && (
+        <button
+            className="btn btn-secondary btn-sm"
+            onClick={() =>
+                downloadCSV("department-report", departmentReport, [
+                    { key: "department", label: "Department" },
+                    { key: "totalEmployees", label: "Employees" },
+                    { label: "Average Salary", format: (r) => Math.round(r.averageSalary) },
+                    { label: "Total Payroll", format: (r) => r.totalEmployees * Math.round(r.averageSalary) },
+                ])
+            }
+        >
+            Export CSV
+        </button>
+    )}
+</div>
 
-                {departmentReport.length === 0 ? (
-                    <Card>
-                        <div className="card-body" style={{ textAlign: 'center', padding: 'var(--spacing-4)' }}>
-                            <p className="text-muted" style={{ marginBottom: 0 }}>No department data available yet.</p>
-                        </div>
-                    </Card>
-                ) : (
-                    <Card>
-                        <div className="dashboard-report-scroll table-responsive">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Department</th>
-                                        <th>Employees</th>
-                                        <th>Average Salary</th>
-                                        <th>Total Payroll</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {departmentReport.map((item) => (
-                                        <tr key={item.department}>
-                                            <td><strong>{item.department}</strong></td>
-                                            <td>
-                                                <span className="badge badge-primary">
-                                                    {item.totalEmployees}
-                                                </span>
-                                            </td>
-                                            <td>{formatCurrency(Math.round(item.averageSalary))}</td>
-                                            <td>{formatCurrency(item.totalEmployees * Math.round(item.averageSalary))}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card>
-                )}
+{departmentReport.length === 0 ? (
+    <Card>
+        <div className="card-body" style={{ textAlign: 'center', padding: 'var(--spacing-4)' }}>
+            <p className="text-muted" style={{ marginBottom: 0 }}>No department data available yet.</p>
+        </div>
+    </Card>
+) : (
+    <Card>
+        <div className={`table-responsive ${departmentReport.length > 8 ? "dashboard-report-scroll" : ""}`}>
+            <table>
+                {/* ...unchanged thead/tbody... */}
+            </table>
+        </div>
+    </Card>
+)}
 
                 {/* Quick Actions */}
                 <div className="dashboard-quick-actions">

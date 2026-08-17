@@ -13,7 +13,7 @@ import {
 } from "../components/FormField";
 import { matchesSearch } from "../utils/search";
 import '../styles/design-system.css';
-
+import { downloadCSV } from "../utils/csv";
 function Users() {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
@@ -40,7 +40,14 @@ function Users() {
             setLoading(false);
         }
     };
-
+    const handleExport = () => {
+    downloadCSV("users", filteredUsers, [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "role", label: "Role" },
+        { label: "Status", format: (u) => (u.isActive ? "Active" : "Inactive") },
+    ]);
+};
     const handleDeleteClick = (userId, userName) => {
         setDeleteConfirm({
             isOpen: true,
@@ -90,31 +97,31 @@ function Users() {
                     <h1>Users</h1>
                     <p>Manage system login accounts</p>
                 </div>
-                <div className="page-actions">
-                    <button className="btn btn-primary" onClick={() => navigate("/create-user")}>
-                        Create User
-                    </button>
-                </div>
+               <div className="page-actions">
+    <button className="btn btn-secondary" onClick={handleExport}>
+        Export CSV
+    </button>
+    <button className="btn btn-primary" onClick={() => navigate("/create-user")}>
+        Create User
+    </button>
+</div>
             </div>
 
-            <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
-                <div className="filters-row">
-                    <div className="filter-field">
-                        <label className="form-label">Search Users</label>
-                        <input
-                            type="text"
-                            className="search-box-sm"
-                            placeholder="By name or email..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        />
-                    </div>
-                </div>
-            </div>
-
+           <div className="filters-row filters-row--plain">
+    <div className="filter-field">
+        <label className="form-label">Search Users</label>
+        <input
+            type="text"
+            className="search-box-sm"
+            placeholder="By name or email..."
+            value={search}
+            onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+            }}
+        />
+    </div>
+</div>
             <ResultsSummary
                 shown={currentUsers.length}
                 total={filteredUsers.length}

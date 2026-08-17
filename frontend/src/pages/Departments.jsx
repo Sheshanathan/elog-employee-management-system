@@ -6,7 +6,7 @@ import { getDesignationName } from "../utils/designation";
 import { matchesSearch } from "../utils/search";
 import { toast } from "react-toastify";
 import '../styles/design-system.css';
-
+import { downloadCSV } from "../utils/csv";
 function Departments() {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -30,6 +30,13 @@ function Departments() {
         department: null
     });
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const handleExport = () => {
+    downloadCSV("departments", filteredDepartments, [
+        { key: "name", label: "Name" },
+        { key: "description", label: "Description" },
+        { key: "status", label: "Status" },
+    ]);
+};
 
     const role = localStorage.getItem("role");
 
@@ -222,23 +229,27 @@ function Departments() {
         <Layout>
             <div className="departments-page">
                 <div className="page-header">
-                    <div className="page-title-section">
-                        <h1>Departments</h1>
-                        <p>Manage organization departments</p>
-                    </div>
-
-                    {role === "Admin" && (
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => {
-                                resetForm();
-                                setShowForm(true);
-                            }}
-                        >
-                            Add Department
-                        </button>
-                    )}
-                </div>
+    <div className="page-title-section">
+        <h1>Departments</h1>
+        <p>Manage organization departments</p>
+    </div>
+    <div className="page-actions">
+        <button className="btn btn-secondary" onClick={handleExport}>
+            Export CSV
+        </button>
+        {role === "Admin" && (
+            <button
+                className="btn btn-primary"
+                onClick={() => {
+                    resetForm();
+                    setShowForm(true);
+                }}
+            >
+                Add Department
+            </button>
+        )}
+    </div>
+</div>
 
                 <div className="department-filters">
                     <input

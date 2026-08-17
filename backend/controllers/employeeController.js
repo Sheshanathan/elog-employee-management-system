@@ -5,6 +5,8 @@ const User = require("../models/User");
 const { validateDepartmentAssignment } = require("../utils/departmentHelpers");
 const { validateDesignationAssignment } = require("../utils/designationHelpers");
 const { EMPLOYEE_POPULATES } = require("../utils/employeeHelpers");
+const Department = require("../models/Department");
+const Designation = require("../models/Designation");
 
 async function getEmployees(req, res) {
     try {
@@ -419,6 +421,115 @@ async function sendMail(req, res) {
     }
 }
 
+async function bulkImportEmployees(req, res) {
+
+    try {
+
+        const { employees } = req.body;
+
+        if (!Array.isArray(employees) || employees.length === 0) {
+
+            return res.status(400).json({ message: "No employee rows provided" });
+
+        }
+
+        const departments = await Department.find({ status: "Active" });
+
+        const designations = await Designation.find({ status: "Active" });
+
+        const findDept = (name) => departments.find(d => d.name.toLowerCase() === String(name || "").trim().toLowerCase());
+
+        const findDesig = (name) => designations.find(d => d.name.toLowerCase() === String(name || "").trim().toLowerCase());
+
+        const lastEmployee = await Employee.findOne().sort({ employeeId: -1 });
+
+        let nextNumber = 1;
+
+        if (lastEmployee?.employeeId) {
+
+            const lastNumber = parseInt(lastEmployee.employeeId.replace("EMP", ""));
+
+            if (!isNaN(lastNumber)) nextNumber = lastNumber + 1;
+
+        }
+
+        const results = { created: 0, failed: [] };
+
+        for (let i = 0; i < employees.length; i++) {
+
+            const row = employees[i];
+
+            const rowNum = i + 2; // header + 1-index
+
+            try {
+
+                if (!row.name || !row.salary || !row.joiningDate) {
+
+                    results.failed.push({ row: rowNum, message: "Missing name, salary, or joiningDate" });
+
+                    continue;
+
+                }
+
+                const dept = findDept(row.department);
+
+                if (!dept) { results.failed.push({ row: rowNum, message: `Department "${row.department}" not found or inactive` }); continue; }
+
+                const desig = findDesig(row.designation);
+
+                if (!desig) { results.failed.push({ row: rowNum, message: `Designation "${row.designation}" not found or inactive` }); continue; }
+
+                await Employee.create({
+
+                    employeeId: `EMP${String(nextNumber).padStart(3, "0")}`,
+
+                    name: row.name.trim(),
+
+                    salary: Number(row.salary),
+
+                    department: dept._id,
+
+                    designation: desig._id,
+
+                    joiningDate: row.joiningDate,
+
+                    status: row.status === "Inactive" ? "Inactive" : "Active",
+
+                    ...(row.email && { email: row.email.toLowerCase().trim() }),
+
+                    ...(row.phone && { phone: row.phone.trim() }),
+
+                    ...(row.workLocation && { workLocation: row.workLocation.trim() }),
+
+                    ...(row.employmentType && { employmentType: row.employmentType })
+
+                });
+
+                nextNumber += 1;
+
+                results.created += 1;
+
+            } catch (error) {
+
+                results.failed.push({ row: rowNum, message: error.message || "Failed to create employee" });
+
+            }
+
+        }
+
+        res.status(200).json({ message: `Imported ${results.created} of ${employees.length} employees`, ...results });
+
+    } catch (error) {
+
+        console.error("Bulk Import Employees Error:", error);
+
+        res.status(500).json({ message: "Failed to import employees" });
+
+    }
+
+}
+
+
 
 module.exports = {
     getEmployees,
@@ -430,5 +541,6 @@ module.exports = {
     departmentReport,
     sendMail,
     getMyProfile,
-    updateMyProfile
+    updateMyProfile,
+    bulkImportEmployees
 };

@@ -2740,6 +2740,14 @@ h3 {
   font-size: var(--font-size-sm);
 }
 
+.filters-row--plain {
+  padding: 0;
+  margin-bottom: var(--spacing-6);
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
 .search-box-sm {
   width: 240px;
   max-width: 100%;
@@ -2774,7 +2782,7 @@ h3 {
 
 .dashboard-page h3 {
   font-size: var(--font-size-lg);
-  margin-top: var(--spacing-4);
+  margin-top: var(--spacing-3);
   margin-bottom: var(--spacing-3);
 }
 
@@ -2784,25 +2792,25 @@ h3 {
 }
 
 .dashboard-page .card {
-  padding: var(--spacing-3);
+  padding: var(--spacing-4);
 }
 
 .dashboard-page .card h2 {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   margin-bottom: 0;
 }
 
 .dashboard-page .card h4 {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-1);
 }
 
 .dashboard-page .card small {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
 }
 
 .dashboard-report-scroll {
-  max-height: 220px;
+  max-height: 260px;
   overflow-y: auto;
   border-radius: var(--radius-md);
 }
@@ -2811,11 +2819,13 @@ h3 {
   position: sticky;
   top: 0;
   z-index: 1;
+  background-color: var(--brand-purple-soft);
+  box-shadow: 0 2px 0 var(--brand-purple);
 }
 
 .dashboard-quick-actions {
-  margin-top: var(--spacing-4);
-  margin-bottom: var(--spacing-4);
+  margin-top: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
 }
 
 .dashboard-quick-actions .btn {

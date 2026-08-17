@@ -380,5 +380,45 @@ router.post(
     employeeController.sendMail
 );
 
+/**
+ * @swagger
+ * /employees/import:
+ *   post:
+ *     summary: Bulk import employees
+ *     description: Import multiple employee records at once. Only administrators can perform this operation.
+ *     tags: [Employees]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Employee data file to import.
+ *     responses:
+ *       200:
+ *         description: Employees imported successfully
+ *       400:
+ *         description: Invalid file or employee data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Internal server error
+ */
 
+router.post(
+    "/employees/import",
+    auth,
+    admin,
+    employeeController.bulkImportEmployees
+);
 module.exports = router;

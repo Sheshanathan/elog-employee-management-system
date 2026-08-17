@@ -18,7 +18,7 @@ import {
     formatWorkingHours,
 } from "../utils/attendance";
 import "../styles/design-system.css";
-
+import { downloadCSV } from "../utils/csv";
 function Attendance() {
     const [attendance, setAttendance] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -31,6 +31,16 @@ function Attendance() {
         label: "",
     });
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const handleExport = () => {
+    downloadCSV("attendance", filteredAttendance, [
+        { label: "Employee", format: (r) => r.employee?.name || "—" },
+        { label: "Employee ID", format: (r) => r.employee?.employeeId || "—" },
+        { label: "Date", format: (r) => formatAttendanceDate(r.date) },
+        { key: "status", label: "Status" },
+        { key: "workingHours", label: "Hours" },
+        { key: "remarks", label: "Remarks" },
+    ]);
+};
 
     const attendancePerPage = 10;
     const navigate = useNavigate();
@@ -133,56 +143,55 @@ function Attendance() {
     return (
         <Layout>
             <div className="page-header">
-                <div className="page-title-section">
-                    <h1>{isAdmin ? "Attendance" : "My Attendance"}</h1>
-                    <p>{isAdmin ? "Detailed attendance records for all employees" : "View your attendance history"}</p>
-                </div>
-                {isAdmin && (
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate("/add-attendance")}
-                    >
-                        Add Attendance
-                    </button>
-                )}
-            </div>
+    <div className="page-title-section">
+        <h1>{isAdmin ? "Attendance" : "My Attendance"}</h1>
+        <p>{isAdmin ? "Detailed attendance records for all employees" : "View your attendance history"}</p>
+    </div>
+    <div className="page-actions">
+        <button className="btn btn-secondary" onClick={handleExport}>
+            Export CSV
+        </button>
+        {isAdmin && (
+            <button className="btn btn-primary" onClick={() => navigate("/add-attendance")}>
+                Add Attendance
+            </button>
+        )}
+    </div>
+</div>
 
             {isAdmin && (
-                <div className="card" style={{ marginBottom: "var(--spacing-6)" }}>
-                    <div className="filters-row">
-                        <div className="filter-field">
-                            <label className="form-label">Search</label>
-                            <input
-                                type="text"
-                                className="search-box-sm"
-                                placeholder="Employee name or ID..."
-                                value={search}
-                                onChange={(event) => {
-                                    setSearch(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            />
-                        </div>
-                        <div className="filter-field">
-                            <label className="form-label">Status</label>
-                            <select
-                                className="filter-select-sm"
-                                value={statusFilter}
-                                onChange={(event) => {
-                                    setStatusFilter(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            >
-                                <option value="All">All Status</option>
-                                <option value="Present">Present</option>
-                                <option value="Absent">Absent</option>
-                                <option value="Leave">Leave</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+    <div className="filters-row filters-row--plain">
+        <div className="filter-field">
+            <label className="form-label">Search</label>
+            <input
+                type="text"
+                className="search-box-sm"
+                placeholder="Employee name or ID..."
+                value={search}
+                onChange={(event) => {
+                    setSearch(event.target.value);
+                    setCurrentPage(1);
+                }}
+            />
+        </div>
+        <div className="filter-field">
+            <label className="form-label">Status</label>
+            <select
+                className="filter-select-sm"
+                value={statusFilter}
+                onChange={(event) => {
+                    setStatusFilter(event.target.value);
+                    setCurrentPage(1);
+                }}
+            >
+                <option value="All">All Status</option>
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Leave">Leave</option>
+            </select>
+        </div>
+    </div>
+)}
             <ResultsSummary
                 shown={currentAttendance.length}
                 total={filteredAttendance.length}
