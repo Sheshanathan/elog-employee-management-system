@@ -4,6 +4,8 @@
     box-sizing: border-box;
 }
 
+/* ================= Global ================= */
+
 html,
 body,
 #root {
@@ -28,7 +30,8 @@ a {
 }
 
 /* ================= Layout ================= */
-/* DISABLED: Conflicts with design-system.css layout styles */
+/* Disabled: Conflicts with design-system.css layout styles */
+
 /*
 .layout {
     display: flex;
@@ -43,7 +46,8 @@ a {
 */
 
 /* ================= Sidebar ================= */
-/* DISABLED: Conflicts with design-system.css sidebar styles */
+/* Disabled: Conflicts with design-system.css sidebar styles */
+
 /*
 .sidebar {
     width: 250px;
@@ -242,9 +246,11 @@ h2 {
     color: #111827;
 }
 
-/* ================= Employee Table ================= */
+/* ================= Common Table Styling ================= */
+/* Employee, Department and Designation tables use the same styling */
 
-.employee-table-wrapper {
+.employee-table-wrapper,
+.department-table-wrapper {
     width: 100%;
     overflow-x: auto;
     border-radius: 14px;
@@ -252,20 +258,24 @@ h2 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.employee-table {
+.employee-table,
+.department-table {
     width: 100%;
     border-collapse: collapse;
     table-layout: auto;
 }
 
 .employee-table th,
-.employee-table td {
+.employee-table td,
+.department-table th,
+.department-table td {
     padding: 13px 14px;
     white-space: nowrap;
     text-align: left;
 }
 
-.employee-table th {
+.employee-table th,
+.department-table th {
     background: #f5f2ff;
     color: #1a1a1a;
     font-weight: 600;
@@ -273,20 +283,24 @@ h2 {
     border-bottom: 2px solid #5d2ee1;
 }
 
-.employee-table td {
+.employee-table td,
+.department-table td {
     border-bottom: 1px solid #e5e7eb;
     background: white;
 }
 
-.employee-table tbody tr:nth-child(even) td {
+.employee-table tbody tr:nth-child(even) td,
+.department-table tbody tr:nth-child(even) td {
     background: #f9fafb;
 }
 
-.employee-table tbody tr:hover td {
+.employee-table tbody tr:hover td,
+.department-table tbody tr:hover td {
     background: #f1f5f9;
 }
 
-.employee-table tbody tr:last-child td {
+.employee-table tbody tr:last-child td,
+.department-table tbody tr:last-child td {
     border-bottom: none;
 }
 
@@ -386,7 +400,9 @@ h2 {
     }
 
     .employee-table th,
-    .employee-table td {
+    .employee-table td,
+    .department-table th,
+    .department-table td {
         padding: 11px 12px;
     }
 
@@ -433,11 +449,14 @@ h2 {
         width: 90%;
     }
 
-    .employee-table-wrapper {
+    .employee-table-wrapper,
+    .department-table-wrapper {
         overflow-x: auto;
     }
-    
 }
+
+/* ================= Form Validation ================= */
+
 .form-error {
     color: #dc2626;
     font-size: 14px;
@@ -447,7 +466,6 @@ h2 {
     line-height: 1.4;
     text-align: left;
 }
-/* ================= Form Validation ================= */
 
 .form-field {
     margin-bottom: 18px;
@@ -486,6 +504,9 @@ h2 {
     line-height: 1.4;
     text-align: left;
 }
+
+/* ================= Department Report ================= */
+
 .department-report {
     margin-top: 30px;
     background: #ffffff;
@@ -499,41 +520,8 @@ h2 {
     color: #333;
 }
 
-.department-table-wrapper {
+/* ================= User Table ================= */
 
-    width: 100%;
-    overflow-x: auto;
-    border-radius: 14px;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.department-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.department-table th {
-    background: #f5f2ff;
-    color: #1a1a1a;
-    padding: 14px 16px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid #5d2ee1;
-}
-
-.department-table td {
-    padding: 14px 16px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.department-table tbody tr:nth-child(even) {
-    background: #f9fafb;
-}
-
-.department-table tbody tr:hover {
-    background: #f1f5f9;
-}
 .user-table-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -595,8 +583,11 @@ h2 {
     min-width: 85px;
     padding: 10px 14px;
 }
+
+/* ================= Password Reset ================= */
+
 .invalid-reset-box {
-   width: 100%;
+    width: 100%;
     max-width: 700px;
     box-sizing: border-box;
     text-align: center;
@@ -709,54 +700,6 @@ h2 {
     background: #475569;
 }
 
-/* ================= Department / Designation Table ================= */
-
-.department-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    border-radius: 14px;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.department-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: auto;
-}
-
-.department-table th,
-.department-table td {
-    padding: 13px 16px;
-    text-align: left;
-    white-space: nowrap;
-}
-
-.department-table th {
-    background: #f5f2ff;
-    color: #1a1a1a;
-    font-weight: 600;
-    font-size: 16px;
-    border-bottom: 2px solid #5d2ee1;
-}
-
-.department-table td {
-    border-bottom: 1px solid #e5e7eb;
-    background: white;
-}
-
-.department-table tbody tr:nth-child(even) td {
-    background: #f9fafb;
-}
-
-.department-table tbody tr:hover td {
-    background: #f1f5f9;
-}
-
-.department-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
 /* ================= Department / Designation Actions ================= */
 
 .department-table td button {
@@ -808,7 +751,7 @@ h2 {
     display: inline-block;
 }
 
-/* ================= Empty / Loading State ================= */
+/* ================= Department Empty / Loading State ================= */
 
 .departments-page > p {
     background: white;
@@ -822,7 +765,6 @@ h2 {
 /* ================= Department / Designation Responsive ================= */
 
 @media (max-width: 768px) {
-
     .page-header {
         flex-direction: column;
         align-items: stretch;
@@ -862,6 +804,7 @@ h2 {
         padding: 20px;
     }
 }
+
 /* ================= Employee Profile ================= */
 
 .employee-profile-page {
@@ -898,7 +841,7 @@ h2 {
     background: #475569;
 }
 
-/* Profile Cards */
+/* ================= Employee Profile Cards ================= */
 
 .employee-profile-grid {
     display: grid;
@@ -920,7 +863,7 @@ h2 {
     font-size: 20px;
 }
 
-/* Profile Fields */
+/* ================= Employee Profile Fields ================= */
 
 .profile-field {
     display: flex;
@@ -945,14 +888,12 @@ h2 {
     text-align: right;
 }
 
-/* Salary */
-
 .profile-salary {
     color: #ffbb5c !important;
     font-size: 18px;
 }
 
-/* Status */
+/* ================= Employee Profile Status ================= */
 
 .profile-status {
     padding: 5px 12px;
@@ -970,7 +911,7 @@ h2 {
     color: #991b1b;
 }
 
-/* Error */
+/* ================= Employee Profile Error ================= */
 
 .employee-profile-error {
     background: white;
@@ -989,10 +930,9 @@ h2 {
     margin-bottom: 25px;
 }
 
-/* Responsive */
+/* ================= Employee Profile Responsive ================= */
 
 @media (max-width: 768px) {
-
     .employee-profile-header {
         flex-direction: column;
         align-items: stretch;
@@ -1024,6 +964,7 @@ h2 {
         text-align: left;
     }
 }
+
 /* ================= Attendance ================= */
 
 .attendance-add-button {

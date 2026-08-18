@@ -361,7 +361,8 @@ function Designations() {
                         actionText="Add Designation"
                     />
                 ) : (
-                    <div className="department-table-wrapper department-table-wrapper--fit">
+                    <div className="card employees-card department-table-card">
+    <div className="table-responsive table-responsive-fit">
                         <table className={`department-table department-list-table${role === "Admin" ? " department-list-table--admin" : ""}`}>
                             <thead>
                                 <tr>
@@ -423,6 +424,7 @@ function Designations() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 )}
 

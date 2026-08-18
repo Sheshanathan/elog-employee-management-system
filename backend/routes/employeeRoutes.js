@@ -5,7 +5,6 @@ const employeeController = require("../controllers/employeeController");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const upload = require("../middleware/upload");
-
 const {
     validateEmployeeData
 } = require("../middleware/validation");
@@ -183,6 +182,102 @@ router.post(
     employeeController.addEmployee
 );
 
+/**
+ * @swagger
+ * /employees/import:
+ *   post:
+ *     summary: Import employees from CSV data
+ *     description: Import multiple employees at once. Only administrators can perform this operation.
+ *     tags:
+ *       - Employees
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employees
+ *             properties:
+ *               employees:
+ *                 type: array
+ *                 description: List of employees to import
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - employeeId
+ *                     - name
+ *                     - salary
+ *                     - department
+ *                     - joiningDate
+ *                   properties:
+ *                     employeeId:
+ *                       type: string
+ *                       example: EMP001
+ *                     name:
+ *                       type: string
+ *                       example: Michael Scott
+ *                     department:
+ *                       type: string
+ *                       example: Sales
+ *                     designation:
+ *                       type: string
+ *                       example: Manager
+ *                     salary:
+ *                       type: number
+ *                       example: 75000
+ *                     joiningDate:
+ *                       type: string
+ *                       format: date
+ *                       example: 2026-04-23
+ *                     status:
+ *                       type: string
+ *                       enum:
+ *                         - Active
+ *                         - Inactive
+ *                       example: Active
+ *     responses:
+ *       201:
+ *         description: Employees imported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Employee import completed
+ *                 created:
+ *                   type: integer
+ *                   example: 5
+ *                 failed:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       row:
+ *                         type: integer
+ *                         example: 4
+ *                       message:
+ *                         type: string
+ *                         example: Employee validation failed
+ *       400:
+ *         description: Invalid import data
+ *       401:
+ *         description: Authentication required or token is invalid
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ */
+router.post(
+    "/employees/import",
+    auth,
+    admin,
+    employeeController.importEmployees
+);
 
 /**
  * @swagger
@@ -380,45 +475,4 @@ router.post(
     employeeController.sendMail
 );
 
-/**
- * @swagger
- * /employees/import:
- *   post:
- *     summary: Bulk import employees
- *     description: Import multiple employee records at once. Only administrators can perform this operation.
- *     tags: [Employees]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - file
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: Employee data file to import.
- *     responses:
- *       200:
- *         description: Employees imported successfully
- *       400:
- *         description: Invalid file or employee data
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Admin access required
- *       500:
- *         description: Internal server error
- */
-
-router.post(
-    "/employees/import",
-    auth,
-    admin,
-    employeeController.bulkImportEmployees
-);
 module.exports = router;

@@ -11,6 +11,7 @@ exports.getUsers = async (req, res) => {
             .populate(EMPLOYEE_NESTED_POPULATE);
 
         res.status(200).json(users);
+
     } catch (error) {
         console.error("Get Users Error:", error);
 
@@ -19,6 +20,7 @@ exports.getUsers = async (req, res) => {
         });
     }
 };
+
 
 exports.getUserById = async (req, res) => {
     try {
@@ -30,7 +32,9 @@ exports.getUserById = async (req, res) => {
             });
         }
 
-        const user = await User.findById(id).select("-password");
+        const user = await User.findById(id)
+            .select("-password")
+            .populate(EMPLOYEE_NESTED_POPULATE);
 
         if (!user) {
             return res.status(404).json({
@@ -49,6 +53,7 @@ exports.getUserById = async (req, res) => {
     }
 };
 
+
 exports.createUser = async (req, res) => {
     try {
         const {
@@ -59,8 +64,11 @@ exports.createUser = async (req, res) => {
             employee
         } = req.body;
 
+        const normalizedEmail =
+            email?.trim().toLowerCase();
+
         const existingUser = await User.findOne({
-            email: email.toLowerCase()
+            email: normalizedEmail
         });
 
         if (existingUser) {
@@ -69,10 +77,15 @@ exports.createUser = async (req, res) => {
             });
         }
 
+        /*
+         * Employee role requires an employee
+         */
         if (role === "Employee") {
+
             if (!employee) {
                 return res.status(400).json({
-                    message: "Employee selection is required for Employee role"
+                    message:
+                        "Employee selection is required for Employee role"
                 });
             }
 
@@ -82,7 +95,8 @@ exports.createUser = async (req, res) => {
                 });
             }
 
-            const employeeExists = await Employee.findById(employee);
+            const employeeExists =
+                await Employee.findById(employee);
 
             if (!employeeExists) {
                 return res.status(404).json({
@@ -90,28 +104,31 @@ exports.createUser = async (req, res) => {
                 });
             }
 
-            const existingEmployeeUser = await User.findOne({
-                employee
-            });
+            const existingEmployeeUser =
+                await User.findOne({
+                    employee
+                });
 
             if (existingEmployeeUser) {
                 return res.status(409).json({
-                    message: "This employee already has a user account"
+                    message:
+                        "This employee already has a user account"
                 });
             }
         }
 
-        const hashedPassword = await bcrypt.hash(
-            password,
-            10
-        );
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
 
         const user = new User({
             name,
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             password: hashedPassword,
             role,
-            employee: role === "Employee" ? employee : null
+            employee:
+                role === "Employee"
+                    ? employee
+                    : null
         });
 
         await user.save();
@@ -121,6 +138,7 @@ exports.createUser = async (req, res) => {
         });
 
     } catch (error) {
+
         console.error("Create User Error:", error);
 
         if (error.code === 11000) {
@@ -130,12 +148,15 @@ exports.createUser = async (req, res) => {
         }
 
         if (error.name === "ValidationError") {
+
             const errors = {};
 
-            Object.keys(error.errors).forEach((field) => {
-                errors[field] =
-                    error.errors[field].message;
-            });
+            Object.keys(error.errors).forEach(
+                (field) => {
+                    errors[field] =
+                        error.errors[field].message;
+                }
+            );
 
             return res.status(400).json({
                 message: "Validation failed",
@@ -149,6 +170,7 @@ exports.createUser = async (req, res) => {
     }
 };
 
+
 exports.updateUser = async (req, res) => {
     try {
         const {
@@ -158,39 +180,68 @@ exports.updateUser = async (req, res) => {
             employee
         } = req.body;
 
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        const { id } = req.params;
+
+        // Validate User ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 message: "Invalid User ID"
             });
         }
 
-        const existingUser = await User.findOne({
+        // Find the existing user first
+        const existingUser = await User.findById(id);
+
+        if (!existingUser) {
+            return res.status(404).json({
+                message: "User Not Found"
+            });
+        }
+
+        // Check duplicate email
+        const emailExists = await User.findOne({
             email: email.toLowerCase(),
             _id: {
-                $ne: req.params.id
+                $ne: id
             }
         });
 
-        if (existingUser) {
+        if (emailExists) {
             return res.status(409).json({
                 message: "Email already exists"
             });
         }
 
+        /*
+         * Employee role
+         *
+         * If frontend sends a new employee,
+         * validate it.
+         *
+         * If frontend does not send employee,
+         * preserve the existing employee.
+         */
+        let employeeId = null;
+
         if (role === "Employee") {
-            if (!employee) {
+
+            employeeId = employee || existingUser.employee;
+
+            if (!employeeId) {
                 return res.status(400).json({
-                    message: "Employee selection is required for Employee role"
+                    message:
+                        "Employee selection is required for Employee role"
                 });
             }
 
-            if (!mongoose.Types.ObjectId.isValid(employee)) {
+            if (!mongoose.Types.ObjectId.isValid(employeeId)) {
                 return res.status(400).json({
                     message: "Invalid Employee ID"
                 });
             }
 
-            const employeeExists = await Employee.findById(employee);
+            const employeeExists =
+                await Employee.findById(employeeId);
 
             if (!employeeExists) {
                 return res.status(404).json({
@@ -198,30 +249,39 @@ exports.updateUser = async (req, res) => {
                 });
             }
 
-            const existingEmployeeUser = await User.findOne({
-                employee,
-                _id: {
-                    $ne: req.params.id
-                }
-            });
+            // Check whether another user already uses this employee
+            const existingEmployeeUser =
+                await User.findOne({
+                    employee: employeeId,
+                    _id: {
+                        $ne: id
+                    }
+                });
 
             if (existingEmployeeUser) {
                 return res.status(409).json({
-                    message: "This employee already has a user account"
+                    message:
+                        "This employee already has a user account"
                 });
             }
         }
 
+        /*
+         * Admin users do not need an employee.
+         */
+        if (role === "Admin") {
+            employeeId = null;
+        }
+
+        // Update user
         const updatedUser =
             await User.findByIdAndUpdate(
-                req.params.id,
+                id,
                 {
                     name,
                     email: email.toLowerCase(),
                     role,
-                    employee: role === "Employee"
-                        ? employee
-                        : null
+                    employee: employeeId
                 },
                 {
                     new: true,
@@ -245,7 +305,7 @@ exports.updateUser = async (req, res) => {
 
         if (error.code === 11000) {
             return res.status(409).json({
-                message: "Email already exists"
+                message: "Email or employee already exists"
             });
         }
 
@@ -256,6 +316,11 @@ exports.updateUser = async (req, res) => {
                 errors[field] =
                     error.errors[field].message;
             });
+
+            console.error(
+                "Validation Errors:",
+                errors
+            );
 
             return res.status(400).json({
                 message: "Validation failed",
@@ -294,6 +359,7 @@ exports.deleteUser = async (req, res) => {
         });
 
     } catch (error) {
+
         console.error("Delete User Error:", error);
 
         res.status(500).json({

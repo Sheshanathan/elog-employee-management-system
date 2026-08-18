@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 import Layout from "../components/Layout";
-import { ConfirmationModal, StatusBadge, LoadingSpinner, EmptyState, ResultsSummary, RowActionsMenu } from "../components/FormField";
+import {
+    ConfirmationModal,
+    StatusBadge,
+    LoadingSpinner,
+    EmptyState,
+    ResultsSummary,
+    RowActionsMenu,
+} from "../components/FormField";
 import { getDesignationName } from "../utils/designation";
 import { matchesSearch } from "../utils/search";
 import { toast } from "react-toastify";
-import '../styles/design-system.css';
+import "../styles/design-system.css";
 import { downloadCSV } from "../utils/csv";
+
 function Departments() {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -27,16 +35,10 @@ function Departments() {
 
     const [deleteConfirm, setDeleteConfirm] = useState({
         isOpen: false,
-        department: null
+        department: null,
     });
+
     const [deleteLoading, setDeleteLoading] = useState(false);
-    const handleExport = () => {
-    downloadCSV("departments", filteredDepartments, [
-        { key: "name", label: "Name" },
-        { key: "description", label: "Description" },
-        { key: "status", label: "Status" },
-    ]);
-};
 
     const role = localStorage.getItem("role");
 
@@ -45,8 +47,17 @@ function Departments() {
 
         try {
             const response = await api.get("/departments");
-            setDepartments(response.data || []);
+
+            const departmentData = Array.isArray(response.data)
+                ? response.data
+                : Array.isArray(response.data?.departments)
+                    ? response.data.departments
+                    : [];
+
+            setDepartments(departmentData);
         } catch (error) {
+            setDepartments([]);
+
             toast.error(
                 error.response?.data?.message ||
                 "Failed to load departments"
@@ -69,8 +80,12 @@ function Departments() {
                 `/departments/${department._id}/employees`
             );
 
-            setDepartmentEmployees(response.data);
+            setDepartmentEmployees(
+                Array.isArray(response.data) ? response.data : []
+            );
         } catch (error) {
+            setDepartmentEmployees([]);
+
             toast.error(
                 error.response?.data?.message ||
                 "Failed to load department employees"
@@ -96,9 +111,9 @@ function Departments() {
 
     function handleEdit(department) {
         setEditingDepartment(department);
-        setName(department.name);
+        setName(department.name || "");
         setDescription(department.description || "");
-        setStatus(department.status);
+        setStatus(department.status || "Active");
         setFormErrors({});
         setShowForm(true);
     }
@@ -109,9 +124,11 @@ function Departments() {
         if (!name.trim()) {
             errors.name = "Department name is required";
         } else if (name.trim().length < 2) {
-            errors.name = "Department name must contain at least 2 characters";
+            errors.name =
+                "Department name must contain at least 2 characters";
         } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name.trim())) {
-            errors.name = "Department name should contain only letters and spaces";
+            errors.name =
+                "Department name should contain only letters and spaces";
         }
 
         setFormErrors(errors);
@@ -130,7 +147,7 @@ function Departments() {
             const payload = {
                 name: name.trim(),
                 description: description.trim(),
-                status
+                status,
             };
 
             if (editingDepartment) {
@@ -164,7 +181,7 @@ function Departments() {
     function handleDeleteClick(department) {
         setDeleteConfirm({
             isOpen: true,
-            department
+            department,
         });
     }
 
@@ -181,10 +198,18 @@ function Departments() {
             );
 
             toast.success("Department Deleted Successfully");
-            setDeleteConfirm({ isOpen: false, department: null });
+
+            setDeleteConfirm({
+                isOpen: false,
+                department: null,
+            });
+
             fetchDepartments();
 
-            if (selectedDepartment?._id === deleteConfirm.department._id) {
+            if (
+                selectedDepartment?._id ===
+                deleteConfirm.department._id
+            ) {
                 closeEmployees();
             }
         } catch (error) {
@@ -209,7 +234,10 @@ function Departments() {
                 { status: newStatus }
             );
 
-            toast.success(`Department ${newStatus} Successfully`);
+            toast.success(
+                `Department ${newStatus} Successfully`
+            );
+
             fetchDepartments();
         } catch (error) {
             toast.error(
@@ -219,44 +247,89 @@ function Departments() {
         }
     }
 
-    const filteredDepartments = (departments || []).filter((department) =>
-        matchesSearch(search, department.name)
+    /*
+     * Safe filtering:
+     * - Handles empty/null department names
+     * - Prevents matchesSearch from receiving undefined
+     */
+    const filteredDepartments = (departments || []).filter(
+        (department) =>
+            matchesSearch(
+                search,
+                department?.name || ""
+            )
     );
+
+    /*
+     * Export only the currently filtered departments.
+     * Empty fields remain empty.
+     */
+    const handleExport = () => {
+        downloadCSV("departments", filteredDepartments, [
+            {
+                key: "name",
+                label: "Name",
+                format: (department) =>
+                    department?.name ?? "",
+            },
+            {
+                key: "description",
+                label: "Description",
+                format: (department) =>
+                    department?.description ?? "",
+            },
+            {
+                key: "status",
+                label: "Status",
+                format: (department) =>
+                    department?.status ?? "",
+            },
+        ]);
+    };
 
     const columnCount = role === "Admin" ? 4 : 3;
 
     return (
         <Layout>
             <div className="departments-page">
+
                 <div className="page-header">
-    <div className="page-title-section">
-        <h1>Departments</h1>
-        <p>Manage organization departments</p>
-    </div>
-    <div className="page-actions">
-        <button className="btn btn-secondary" onClick={handleExport}>
-            Export CSV
-        </button>
-        {role === "Admin" && (
-            <button
-                className="btn btn-primary"
-                onClick={() => {
-                    resetForm();
-                    setShowForm(true);
-                }}
-            >
-                Add Department
-            </button>
-        )}
-    </div>
-</div>
+                    <div className="page-title-section">
+                        <h1>Departments</h1>
+                        <p>Manage organization departments</p>
+                    </div>
+
+                    <div className="page-actions">
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleExport}
+                            disabled={filteredDepartments.length === 0}
+                        >
+                            Export CSV
+                        </button>
+
+                        {role === "Admin" && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    resetForm();
+                                    setShowForm(true);
+                                }}
+                            >
+                                Add Department
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 <div className="department-filters">
                     <input
                         type="text"
                         placeholder="Search Department..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) =>
+                            setSearch(e.target.value)
+                        }
                         className="search-box"
                     />
                 </div>
@@ -271,54 +344,88 @@ function Departments() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label htmlFor="department-name" className="form-label required">
+                                <label
+                                    htmlFor="department-name"
+                                    className="form-label required"
+                                >
                                     Department Name
                                 </label>
+
                                 <input
                                     id="department-name"
                                     type="text"
                                     value={name}
                                     placeholder="Enter Department Name"
-                                    className={formErrors.name ? "is-invalid" : ""}
-                                    onChange={(e) => setName(e.target.value)}
+                                    className={
+                                        formErrors.name
+                                            ? "is-invalid"
+                                            : ""
+                                    }
+                                    onChange={(e) =>
+                                        setName(e.target.value)
+                                    }
                                 />
+
                                 {formErrors.name && (
-                                    <div className="form-error">{formErrors.name}</div>
+                                    <div className="form-error">
+                                        {formErrors.name}
+                                    </div>
                                 )}
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="department-description" className="form-label">
+                                <label
+                                    htmlFor="department-description"
+                                    className="form-label"
+                                >
                                     Description
                                 </label>
+
                                 <textarea
                                     id="department-description"
                                     value={description}
                                     placeholder="Enter Department Description (optional)"
-                                    onChange={(e) => setDescription(e.target.value)}
+                                    onChange={(e) =>
+                                        setDescription(e.target.value)
+                                    }
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="department-status" className="form-label required">
+                                <label
+                                    htmlFor="department-status"
+                                    className="form-label required"
+                                >
                                     Status
                                 </label>
+
                                 <select
                                     id="department-status"
                                     value={status}
-                                    onChange={(e) => setStatus(e.target.value)}
+                                    onChange={(e) =>
+                                        setStatus(e.target.value)
+                                    }
                                 >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
+                                    <option value="Active">
+                                        Active
+                                    </option>
+
+                                    <option value="Inactive">
+                                        Inactive
+                                    </option>
                                 </select>
                             </div>
 
                             <div className="form-actions">
-                                <button type="submit" className="btn btn-primary">
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                >
                                     {editingDepartment
                                         ? "Update Department"
                                         : "Create Department"}
                                 </button>
+
                                 <button
                                     type="button"
                                     className="btn btn-secondary"
@@ -356,137 +463,280 @@ function Departments() {
                         actionText="Add Department"
                     />
                 ) : (
-                    <div className="department-table-wrapper department-table-wrapper--fit">
-                        <table className={`department-table department-list-table${role === "Admin" ? " department-list-table--admin" : ""}`}>
+                    <div className="card employees-card department-table-card">
+    <div className="table-responsive table-responsive-fit">
+                        <table
+                            className={`department-table department-list-table${role === "Admin"
+                                ? " department-list-table--admin"
+                                : ""
+                                }`}
+                        >
                             <thead>
                                 <tr>
-                                    <th className="col-name">Name</th>
-                                    <th className="col-desc">Description</th>
-                                    <th className="col-status col-badge">Status</th>
-                                    {role === "Admin" && <th className="col-actions">Actions</th>}
+                                    <th className="col-name">
+                                        Name
+                                    </th>
+
+                                    <th className="col-desc">
+                                        Description
+                                    </th>
+
+                                    <th className="col-status col-badge">
+                                        Status
+                                    </th>
+
+                                    {role === "Admin" && (
+                                        <th className="col-actions">
+                                            Actions
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
 
                             <tbody>
                                 {filteredDepartments.length === 0 ? (
                                     <tr>
-                                        <td colSpan={columnCount} className="table-empty-message">
-                                            No departments match your search.
+                                        <td
+                                            colSpan={columnCount}
+                                            className="table-empty-message"
+                                        >
+                                            No departments match your
+                                            search.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredDepartments.map((department) => (
-                                        <tr key={department._id}>
-                                            <td className="col-name cell-ellipsis" title={department.name}>{department.name}</td>
-                                            <td className="col-desc cell-ellipsis" title={department.description || "N/A"}>{department.description || "N/A"}</td>
-                                            <td className="col-status cell-badge cell-nowrap">
-                                                <StatusBadge status={department.status} />
-                                            </td>
+                                    filteredDepartments.map(
+                                        (department) => (
+                                            <tr
+                                                key={
+                                                    department._id ||
+                                                    department.name
+                                                }
+                                            >
+                                                <td
+                                                    className="col-name cell-ellipsis"
+                                                    title={
+                                                        department.name ||
+                                                        ""
+                                                    }
+                                                >
+                                                    {department.name ||
+                                                        ""}
+                                                </td>
 
-                                            {role === "Admin" && (
-                                                <td className="col-actions cell-actions">
-                                                    <RowActionsMenu
-                                                        ariaLabel={`Actions for ${department.name}`}
-                                                        items={[
-                                                            {
-                                                                key: 'edit',
-                                                                label: 'Edit',
-                                                                onClick: () => handleEdit(department),
-                                                            },
-                                                            {
-                                                                key: 'toggle',
-                                                                label: department.status === 'Active' ? 'Deactivate' : 'Activate',
-                                                                onClick: () => toggleStatus(department),
-                                                            },
-                                                            {
-                                                                key: 'employees',
-                                                                label: 'View Employees',
-                                                                onClick: () => viewEmployees(department),
-                                                            },
-                                                            {
-                                                                key: 'delete',
-                                                                label: 'Delete',
-                                                                danger: true,
-                                                                onClick: () => handleDeleteClick(department),
-                                                            },
-                                                        ]}
+                                                <td
+                                                    className="col-desc cell-ellipsis"
+                                                    title={
+                                                        department.description ||
+                                                        ""
+                                                    }
+                                                >
+                                                    {department.description ||
+                                                        "N/A"}
+                                                </td>
+
+                                                <td className="col-status cell-badge cell-nowrap">
+                                                    <StatusBadge
+                                                        status={
+                                                            department.status ||
+                                                            "Inactive"
+                                                        }
                                                     />
                                                 </td>
-                                            )}
-                                        </tr>
-                                    ))
+
+                                                {role === "Admin" && (
+                                                    <td className="col-actions cell-actions">
+                                                        <RowActionsMenu
+                                                            ariaLabel={`Actions for ${department.name || "department"
+                                                                }`}
+                                                            items={[
+                                                                {
+                                                                    key: "edit",
+                                                                    label: "Edit",
+                                                                    onClick:
+                                                                        () =>
+                                                                            handleEdit(
+                                                                                department
+                                                                            ),
+                                                                },
+                                                                {
+                                                                    key: "toggle",
+                                                                    label:
+                                                                        department.status ===
+                                                                            "Active"
+                                                                            ? "Deactivate"
+                                                                            : "Activate",
+                                                                    onClick:
+                                                                        () =>
+                                                                            toggleStatus(
+                                                                                department
+                                                                            ),
+                                                                },
+                                                                {
+                                                                    key: "employees",
+                                                                    label: "View Employees",
+                                                                    onClick:
+                                                                        () =>
+                                                                            viewEmployees(
+                                                                                department
+                                                                            ),
+                                                                },
+                                                                {
+                                                                    key: "delete",
+                                                                    label: "Delete",
+                                                                    danger: true,
+                                                                    onClick:
+                                                                        () =>
+                                                                            handleDeleteClick(
+                                                                                department
+                                                                            ),
+                                                                },
+                                                            ]}
+                                                        />
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        )
+                                    )
                                 )}
                             </tbody>
                         </table>
                     </div>
+                    </div>
                 )}
 
                 {selectedDepartment && (
-                            <div className="department-employees">
-                                <div className="page-header">
-                                    <h2>
-                                        Employees — {selectedDepartment.name}
-                                    </h2>
+                    <div className="department-employees">
+                        <div className="page-header">
+                            <h2>
+                                Employees —{" "}
+                                {selectedDepartment.name}
+                            </h2>
 
-                                    <button
-                                        className="btn btn-secondary"
-                                        onClick={closeEmployees}
-                                    >
-                                        Close
-                                    </button>
-                                </div>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={closeEmployees}
+                            >
+                                Close
+                            </button>
+                        </div>
 
-                                {employeesLoading ? (
-                                    <LoadingSpinner />
-                                ) : departmentEmployees.length === 0 ? (
-                                    <p>No employees found in this department.</p>
-                                ) : (
-                                    <table className="department-table department-list-table department-list-table--nested">
-                                        <thead>
-                                            <tr>
-                                                <th className="col-id">Employee ID</th>
-                                                <th className="col-name">Name</th>
-                                                <th className="col-desig">Designation</th>
-                                                <th className="col-date">Joining Date</th>
-                                                <th className="col-status col-badge">Status</th>
-                                            </tr>
-                                        </thead>
+                        {employeesLoading ? (
+                            <LoadingSpinner />
+                        ) : departmentEmployees.length === 0 ? (
+                            <p>
+                                No employees found in this
+                                department.
+                            </p>
+                        ) : (
+                            <table className="department-table department-list-table department-list-table--nested">
+                                <thead>
+                                    <tr>
+                                        <th className="col-id">
+                                            Employee ID
+                                        </th>
 
-                                        <tbody>
-                                            {departmentEmployees.map((employee) => {
-                                                const designationName = getDesignationName(employee.designation);
+                                        <th className="col-name">
+                                            Name
+                                        </th>
 
-                                                return (
-                                                <tr key={employee._id}>
-                                                    <td className="col-id cell-nowrap">{employee.employeeId}</td>
-                                                    <td className="col-name cell-ellipsis" title={employee.name}>{employee.name}</td>
-                                                    <td className="col-desig cell-ellipsis" title={designationName}>{designationName}</td>
+                                        <th className="col-desig">
+                                            Designation
+                                        </th>
+
+                                        <th className="col-date">
+                                            Joining Date
+                                        </th>
+
+                                        <th className="col-status col-badge">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {departmentEmployees.map(
+                                        (employee) => {
+                                            const designationName =
+                                                employee.designation
+                                                    ? getDesignationName(
+                                                        employee.designation
+                                                    )
+                                                    : "";
+
+                                            return (
+                                                <tr
+                                                    key={
+                                                        employee._id ||
+                                                        employee.employeeId
+                                                    }
+                                                >
+                                                    <td className="col-id cell-nowrap">
+                                                        {employee.employeeId ||
+                                                            ""}
+                                                    </td>
+
+                                                    <td
+                                                        className="col-name cell-ellipsis"
+                                                        title={
+                                                            employee.name ||
+                                                            ""
+                                                        }
+                                                    >
+                                                        {employee.name ||
+                                                            ""}
+                                                    </td>
+
+                                                    <td
+                                                        className="col-desig cell-ellipsis"
+                                                        title={
+                                                            designationName
+                                                        }
+                                                    >
+                                                        {designationName}
+                                                    </td>
+
                                                     <td className="col-date cell-nowrap">
                                                         {employee.joiningDate
-                                                            ? new Date(employee.joiningDate).toLocaleDateString()
+                                                            ? new Date(
+                                                                employee.joiningDate
+                                                            ).toLocaleDateString()
                                                             : "—"}
                                                     </td>
+
                                                     <td className="col-status cell-badge cell-nowrap">
-                                                        <StatusBadge status={employee.status} />
+                                                        <StatusBadge
+                                                            status={
+                                                                employee.status ||
+                                                                "Inactive"
+                                                            }
+                                                        />
                                                     </td>
                                                 </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
+                                            );
+                                        }
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 )}
 
                 <ConfirmationModal
                     isOpen={deleteConfirm.isOpen}
                     title="Delete Department?"
-                    message={`Are you sure you want to delete "${deleteConfirm.department?.name}"?`}
+                    message={`Are you sure you want to delete "${deleteConfirm.department?.name
+                        }"?`}
                     warning="This department cannot be deleted if employees are currently assigned to it. Deactivate the department instead if you want to stop assigning new employees."
                     confirmText="Delete Department"
                     cancelText="Cancel"
                     onConfirm={handleDeleteConfirm}
-                    onCancel={() => setDeleteConfirm({ isOpen: false, department: null })}
+                    onCancel={() =>
+                        setDeleteConfirm({
+                            isOpen: false,
+                            department: null,
+                        })
+                    }
                     isLoading={deleteLoading}
                     isDangerous={true}
                 />
