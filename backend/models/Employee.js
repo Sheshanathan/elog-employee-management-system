@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const employeeSchema = new mongoose.Schema(
     {
+        // Employee ID
         employeeId: {
             type: String,
             required: [true, "Employee ID is required"],
@@ -9,6 +10,7 @@ const employeeSchema = new mongoose.Schema(
             trim: true
         },
 
+        // Personal Information
         name: {
             type: String,
             required: [true, "Name is required"],
@@ -29,21 +31,22 @@ const employeeSchema = new mongoose.Schema(
             lowercase: true,
             unique: true,
             sparse: true,
-            match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Enter a valid email address"]
+            match: [
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                "Enter a valid email address"
+            ]
         },
 
         phone: {
             type: String,
             trim: true,
-            match: [/^[0-9+()\-\s]{7,20}$/, "Enter a valid phone number"]
+            match: [
+                /^[0-9+()\-\s]{7,20}$/,
+                "Enter a valid phone number"
+            ]
         },
 
-        salary: {
-            type: Number,
-            required: [true, "Salary is required"],
-            min: [1, "Salary must be greater than 0"]
-        },
-
+        // Employment Information
         department: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Department",
@@ -67,6 +70,38 @@ const employeeSchema = new mongoose.Schema(
             }
         },
 
+        employmentType: {
+            type: String,
+            enum: {
+                values: [
+                    "Full-time",
+                    "Part-time",
+                    "Contract",
+                    "Intern"
+                ],
+                message:
+                    "Employment Type must be Full-time, Part-time, Contract, or Intern"
+            },
+            default: "Full-time"
+        },
+
+        workLocation: {
+            type: String,
+            trim: true,
+            maxlength: [
+                100,
+                "Work location cannot exceed 100 characters"
+            ]
+        },
+
+        // Compensation
+        salary: {
+            type: Number,
+            required: [true, "Salary is required"],
+            min: [1, "Salary must be greater than 0"]
+        },
+
+        // Employment Status
         status: {
             type: String,
             required: [true, "Status is required"],
@@ -75,20 +110,6 @@ const employeeSchema = new mongoose.Schema(
                 message: "Status must be Active or Inactive"
             },
             default: "Active"
-        },
-
-        employmentType: {
-            type: String,
-            enum: ["Full-time", "Part-time", "Contract", "Intern"],
-            default: "Full-time"
-        },
-
-        workLocation: { type: String, trim: true, maxlength: 100 },
-        reportingManager: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", default: null },
-        payFrequency: {
-            type: String,
-            enum: ["Monthly", "Weekly", "Biweekly", "Annual"],
-            default: "Monthly"
         }
     },
     {

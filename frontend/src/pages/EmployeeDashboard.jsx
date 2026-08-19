@@ -21,7 +21,18 @@ import {
   EDIT_WINDOW_MINUTES,
 } from "../utils/attendance";
 import "../styles/design-system.css";
+const isToday = (date) => {
+  if (!date) return false;
 
+  const recordDate = new Date(date);
+  const currentDate = new Date();
+
+  return (
+    recordDate.getFullYear() === currentDate.getFullYear() &&
+    recordDate.getMonth() === currentDate.getMonth() &&
+    recordDate.getDate() === currentDate.getDate()
+  );
+};
 function EmployeeDashboard() {
   const [profile, setProfile] = useState(null);
   const [records, setRecords] = useState([]);
@@ -54,9 +65,7 @@ function EmployeeDashboard() {
     loadData();
   }, []);
 
-  const today = records.find(
-    (record) => new Date(record.date).toDateString() === new Date().toDateString()
-  );
+  const today = records.find((record) => isToday(record.date));
 
   useEffect(() => {
     if (!today) {

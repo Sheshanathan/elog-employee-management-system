@@ -3,6 +3,7 @@ const Department = require("../models/Department");
 const Designation = require("../models/Designation");
 const mongoose = require("mongoose");
 const transporter = require("../config/mail");
+const User = require("../models/User");
 
 async function getEmployees(req, res) {
     try {
@@ -34,10 +35,14 @@ async function addEmployee(req, res) {
     try {
         const {
             name,
+            email,
+            phone,
+            workLocation,
             salary,
             department,
             designation,
             joiningDate,
+            employmentType,
             status
         } = req.body;
 
@@ -72,10 +77,15 @@ async function addEmployee(req, res) {
             await Employee.create({
                 employeeId,
                 name,
+                email: email || undefined,
+                phone: phone || undefined,
+                workLocation: workLocation || undefined,
                 salary,
                 department,
                 designation,
                 joiningDate,
+                employmentType:
+                    employmentType || "Full-time",
                 status
             });
 
@@ -94,7 +104,7 @@ async function addEmployee(req, res) {
         if (error.code === 11000) {
             return res.status(409).json({
                 message:
-                    "Employee ID already exists"
+                    "Employee ID or Email already exists"
             });
         }
 
@@ -125,7 +135,6 @@ async function addEmployee(req, res) {
         });
     }
 }
-
 
 async function getEmployeeById(
     req,
@@ -172,100 +181,94 @@ async function getEmployeeById(
 }
 
 
-async function updateEmployee(
-    req,
-    res
-) {
+async function updateEmployee(req, res) {
     try {
-
-        const {
-            name,
-            salary,
-            department,
-            designation,
-            joiningDate,
-            status
-        } = req.body;
-
         if (
-            !mongoose.Types.ObjectId.isValid(
-                req.params.id
-            )
+            !mongoose.Types.ObjectId.isValid(req.params.id)
         ) {
             return res.status(400).json({
-                message:
-                    "Invalid Employee ID"
+                message: "Invalid Employee ID"
             });
         }
 
-        const employee =
-    await Employee.findByIdAndUpdate(
-        req.params.id,
-        {
-            name,
-            salary,
-            department,
-            designation,
-            joiningDate,
-            status
-        },
-        {
-            new: true,
-            runValidators: true
-        }
-    )
-    .populate("department", "name")
-    .populate("designation", "name");
+        const employee = await Employee.findById(
+            req.params.id
+        );
 
         if (!employee) {
             return res.status(404).json({
-                message:
-                    "Employee Not Found"
+                message: "Employee Not Found"
             });
         }
 
+        const allowedFields = [
+            "name",
+            "email",
+            "phone",
+            "workLocation",
+            "department",
+            "designation",
+            "joiningDate",
+            "employmentType",
+            "salary",
+            "status"
+        ];
+
+        allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+        employee[field] = req.body[field];
+    }
+});
+
+        await employee.save();
+
+        await employee.populate([
+            {
+                path: "department",
+                select: "name"
+            },
+            {
+                path: "designation",
+                select: "name"
+            }
+        ]);
+
         res.status(200).json({
-            message:
-                "Employee Updated Successfully",
+            message: "Employee Updated Successfully",
             employee
         });
 
     } catch (error) {
-
         console.error(
             "Update Employee Error:",
             error
         );
 
-        if (
-            error.name ===
-            "ValidationError"
-        ) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Email already exists"
+            });
+        }
+
+        if (error.name === "ValidationError") {
             const errors = {};
 
-            Object.keys(
-                error.errors
-            ).forEach((field) => {
+            Object.keys(error.errors).forEach((field) => {
                 errors[field] =
-                    error.errors[field]
-                        .message;
+                    error.errors[field].message;
             });
 
             return res.status(400).json({
-                message:
-                    "Validation failed",
+                message: "Validation failed",
                 errors
             });
         }
 
         res.status(500).json({
-            message:
-                "Failed to update employee"
+            message: "Failed to update employee"
         });
     }
 }
-
-
 async function deleteEmployee(
     req,
     res
@@ -457,26 +460,30 @@ async function importEmployees(req, res) {
 
             try {
                 let {
-                    employeeId,
-                    name,
-                    department,
-                    designation,
-                    joiningDate,
-                    salary,
-                    status
-                } = row;
-
+    employeeId,
+    name,
+    email,
+    phone,
+    department,
+    designation,
+    joiningDate,
+    employmentType,
+    salary,
+    status,
+    workLocation
+} = row;
                 // Clean values
-                employeeId = employeeId
-                    ?.toString()
-                    .trim()
-                    .toUpperCase();
-
-                name = name?.toString().trim();
-                department = department?.toString().trim();
-                designation = designation?.toString().trim();
-                joiningDate = joiningDate?.toString().trim();
-                status = status?.toString().trim();
+                employeeId = employeeId?.toString().trim().toUpperCase();
+name = name?.toString().trim();
+email = email?.toString().trim().toLowerCase();
+phone = phone?.toString().trim();
+department = department?.toString().trim();
+designation = designation?.toString().trim();
+joiningDate = joiningDate?.toString().trim();
+employmentType = employmentType?.toString().trim();
+salary = salary?.toString().trim();
+status = status?.toString().trim();
+workLocation = workLocation?.toString().trim();
 
                 /*
                  * Required fields
@@ -534,7 +541,28 @@ async function importEmployees(req, res) {
 
                     continue;
                 }
+/*
+ * Employment Type
+ */
+employmentType =
+    employmentType || "Full-time";
 
+if (
+    ![
+        "Full-time",
+        "Part-time",
+        "Contract",
+        "Intern"
+    ].includes(employmentType)
+) {
+    failed.push({
+        row: rowNumber,
+        message:
+            "Employment Type must be Full-time, Part-time, Contract, or Intern"
+    });
+
+    continue;
+}
                 /*
                  * JOINING DATE
                  *
@@ -696,6 +724,25 @@ async function importEmployees(req, res) {
                 }
 
 /*
+ * Convert Department name to ObjectId
+ */
+const departmentDoc = await Department.findOne({
+    name: {
+        $regex: `^${department}$`,
+        $options: "i"
+    }
+});
+
+if (!departmentDoc) {
+    failed.push({
+        row: rowNumber,
+        message: `Department "${department}" not found`
+    });
+
+    continue;
+}
+
+/*
  * Convert Designation name to ObjectId
  */
 const designationDoc = await Designation.findOne({
@@ -720,11 +767,15 @@ if (!designationDoc) {
 await Employee.create({
     employeeId,
     name,
+    email: email || undefined,
+    phone: phone || undefined,
     department: departmentDoc._id,
     designation: designationDoc._id,
     joiningDate: parsedDate,
+    employmentType,
     salary: numericSalary,
-    status
+    status,
+    workLocation: workLocation || undefined
 });
 
 created++;
@@ -837,11 +888,32 @@ async function sendMail(
         });
     }
 }
-async function getMyProfile(req, res){
+async function getMyProfile(req, res) {
     try {
-        const employee = await Employee.findOne({
-            user: req.user.id
-        }).select("-__v");
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User Not Found"
+            });
+        }
+
+        if (user.role !== "Employee") {
+            return res.status(403).json({
+                message: "Employee access required"
+            });
+        }
+
+        if (!user.employee) {
+            return res.status(400).json({
+                message: "No employee profile is linked to this account"
+            });
+        }
+
+        const employee = await Employee.findById(user.employee)
+            .select("-__v")
+            .populate("department", "name")
+            .populate("designation", "name");
 
         if (!employee) {
             return res.status(404).json({
@@ -849,7 +921,8 @@ async function getMyProfile(req, res){
             });
         }
 
-        res.json(employee);
+        res.status(200).json(employee);
+
     } catch (error) {
         console.error("Get My Profile Error:", error);
 
@@ -857,8 +930,7 @@ async function getMyProfile(req, res){
             message: "Failed to retrieve profile"
         });
     }
-};
-
+}
 async function updateMyProfile(req, res){
     try {
         const employee = await Employee.findOne({

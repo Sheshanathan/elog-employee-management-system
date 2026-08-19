@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../api";
 import Layout from "../components/Layout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
     ConfirmationModal,
@@ -26,34 +26,22 @@ function formatShortDate(value) {
         return "—";
     }
 
-    return date.toLocaleDateString("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "2-digit",
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
     });
 }
 
-/*
- * Converts imported dates into YYYY-MM-DD.
- *
- * Supported:
- * 2026-04-23
- * 23/04/26
- * 23/04/2026
- * 23-04-26
- * 23-04-2026
- */
 function normalizeImportDate(value) {
     if (!value) return "";
 
     const date = String(value).trim();
 
-    // YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return date;
     }
 
-    // DD/MM/YY or DD/MM/YYYY
     const slashMatch = date.match(
         /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/
     );
@@ -74,11 +62,13 @@ function normalizeImportDate(value) {
             monthNumber >= 1 &&
             monthNumber <= 12
         ) {
-            return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            return `${year}-${month.padStart(
+                2,
+                "0"
+            )}-${day.padStart(2, "0")}`;
         }
     }
 
-    // DD-MM-YY or DD-MM-YYYY
     const dashMatch = date.match(
         /^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/
     );
@@ -99,7 +89,10 @@ function normalizeImportDate(value) {
             monthNumber >= 1 &&
             monthNumber <= 12
         ) {
-            return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            return `${year}-${month.padStart(
+                2,
+                "0"
+            )}-${day.padStart(2, "0")}`;
         }
     }
 
@@ -111,9 +104,14 @@ function isValidDateString(value) {
         return false;
     }
 
-    const [year, month, day] = value.split("-").map(Number);
+    const [year, month, day] =
+        value.split("-").map(Number);
 
-    const date = new Date(year, month - 1, day);
+    const date = new Date(
+        year,
+        month - 1,
+        day
+    );
 
     return (
         date.getFullYear() === year &&
@@ -126,24 +124,34 @@ function Employees() {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("All");
-    const [currentPage, setCurrentPage] = useState(1);
+    const [statusFilter, setStatusFilter] =
+        useState("All");
+
+    const [deleteConfirm, setDeleteConfirm] =
+        useState({
+            isOpen: false,
+            employeeId: null,
+            employeeName: ""
+        });
+
+    const [deleteLoading, setDeleteLoading] =
+        useState(false);
+
+    const [importing, setImporting] =
+        useState(false);
 
     const [
-        deleteConfirm,
-        setDeleteConfirm
-    ] = useState({
-        isOpen: false,
-        employeeId: null,
-        employeeName: ""
-    });
+        showImportPreview,
+        setShowImportPreview
+    ] = useState(false);
 
-    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [
+        importPreviewRows,
+        setImportPreviewRows
+    ] = useState([]);
 
-    const [importing, setImporting] = useState(false);
-    const [showImportPreview, setShowImportPreview] = useState(false);
-    const [importPreviewRows, setImportPreviewRows] = useState([]);
-    const [importErrors, setImportErrors] = useState([]);
+    const [importErrors, setImportErrors] =
+        useState([]);
 
     const fileInputRef = useRef(null);
 
@@ -151,19 +159,45 @@ function Employees() {
 
     const navigate = useNavigate();
 
-    const role = localStorage.getItem("role");
+    const [searchParams, setSearchParams] =
+        useSearchParams();
+
+    const pageFromUrl =
+        Number(searchParams.get("page")) || 1;
+
+    const [currentPage, setCurrentPage] =
+        useState(pageFromUrl);
+
+    const role =
+        localStorage.getItem("role");
 
     useEffect(() => {
         loadEmployees();
     }, []);
 
+    /*
+     * Keep currentPage synchronized with
+     * the page number in the URL.
+     */
+    useEffect(() => {
+        const page =
+            Number(searchParams.get("page")) || 1;
+
+        if (page !== currentPage) {
+            setCurrentPage(page);
+        }
+    }, [searchParams, currentPage]);
+
     const loadEmployees = async () => {
         setLoading(true);
 
         try {
-            const response = await api.get("/employees");
+            const response =
+                await api.get("/employees");
 
-            setEmployees(response.data || []);
+            setEmployees(
+                response.data || []
+            );
         } catch (error) {
             toast.error(
                 error.response?.data?.message ||
@@ -172,6 +206,17 @@ function Employees() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const changePage = (page) => {
+        const validPage =
+            Math.max(1, page);
+
+        setCurrentPage(validPage);
+
+        setSearchParams({
+            page: String(validPage)
+        });
     };
 
     const handleDeleteClick = (
@@ -201,20 +246,91 @@ function Employees() {
                 "Employee deleted successfully"
             );
 
-            setEmployees((prev) =>
-                prev.filter(
+            const deletedEmployeeId =
+                deleteConfirm.employeeId;
+
+            const updatedEmployees =
+                employees.filter(
                     (employee) =>
                         employee._id !==
-                        deleteConfirm.employeeId
-                )
+                        deletedEmployeeId
+                );
+
+            setEmployees(
+                updatedEmployees
             );
+
+            /*
+             * Recalculate the filtered list after
+             * deleting the employee.
+             */
+            const updatedFilteredEmployees =
+                updatedEmployees.filter(
+                    (employee) => {
+                        const matchesSearchQuery =
+                            matchesSearch(
+                                search,
+                                employee.name,
+                                employee.employeeId,
+                                getDepartmentName(
+                                    employee.department
+                                ),
+                                getDesignationName(
+                                    employee.designation
+                                )
+                            );
+
+                        const matchesStatus =
+                            statusFilter ===
+                                "All" ||
+                            employee.status ===
+                                statusFilter;
+
+                        return (
+                            matchesSearchQuery &&
+                            matchesStatus
+                        );
+                    }
+                );
+
+            const remainingPages =
+                Math.max(
+                    1,
+                    Math.ceil(
+                        updatedFilteredEmployees.length /
+                            employeesPerPage
+                    )
+                );
+
+            /*
+             * Stay on the same page if employees
+             * still exist on that page.
+             *
+             * Only move to page 1 if the current
+             * page no longer exists.
+             */
+            if (
+                currentPage >
+                remainingPages
+            ) {
+                setCurrentPage(1);
+
+                setSearchParams({
+                    page: "1"
+                });
+            } else {
+                setSearchParams({
+                    page: String(
+                        currentPage
+                    )
+                });
+            }
 
             setDeleteConfirm({
                 isOpen: false,
                 employeeId: null,
                 employeeName: ""
             });
-
         } catch (error) {
             toast.error(
                 error.response?.data?.message ||
@@ -225,40 +341,86 @@ function Employees() {
         }
     };
 
-    const filteredEmployees = (
-        employees || []
-    ).filter((employee) => {
+    const filteredEmployees =
+        (employees || []).filter(
+            (employee) => {
+                const matchesSearchQuery =
+                    matchesSearch(
+                        search,
+                        employee.name,
+                        employee.employeeId,
+                        getDepartmentName(
+                            employee.department
+                        ),
+                        getDesignationName(
+                            employee.designation
+                        )
+                    );
 
-        const matchesSearchQuery =
-            matchesSearch(
-                search,
-                employee.name,
-                employee.employeeId,
-                getDepartmentName(
-                    employee.department
-                ),
-                getDesignationName(
-                    employee.designation
-                )
-            );
+                const matchesStatus =
+                    statusFilter === "All" ||
+                    employee.status ===
+                        statusFilter;
 
-        const matchesStatus =
-            statusFilter === "All" ||
-            employee.status === statusFilter;
-
-        return (
-            matchesSearchQuery &&
-            matchesStatus
+                return (
+                    matchesSearchQuery &&
+                    matchesStatus
+                );
+            }
         );
-    });
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(
+            filteredEmployees.length /
+                employeesPerPage
+        )
+    );
 
     /*
-     * EXPORT
-     *
-     * Always export joiningDate as YYYY-MM-DD.
-     * This prevents exported dates such as 23/04/26
-     * from causing import problems later.
+     * If URL contains an invalid page,
+     * use page 1.
      */
+    const safePage = Math.min(
+        Math.max(currentPage, 1),
+        totalPages
+    );
+
+    /*
+     * If the URL page is greater than the
+     * available pages, correct it.
+     */
+    useEffect(() => {
+        if (
+            filteredEmployees.length > 0 &&
+            currentPage > totalPages
+        ) {
+            setCurrentPage(1);
+
+            setSearchParams({
+                page: "1"
+            });
+        }
+    }, [
+        currentPage,
+        totalPages,
+        filteredEmployees.length,
+        setSearchParams
+    ]);
+
+    const indexOfLastEmployee =
+        safePage * employeesPerPage;
+
+    const indexOfFirstEmployee =
+        indexOfLastEmployee -
+        employeesPerPage;
+
+    const currentEmployees =
+        filteredEmployees.slice(
+            indexOfFirstEmployee,
+            indexOfLastEmployee
+        );
+
     const handleExport = () => {
         downloadCSV(
             "employees",
@@ -268,7 +430,8 @@ function Employees() {
                     key: "employeeId",
                     label: "Employee ID",
                     format: (employee) =>
-                        employee.employeeId ?? ""
+                        employee.employeeId ??
+                        ""
                 },
                 {
                     key: "name",
@@ -277,25 +440,30 @@ function Employees() {
                         employee.name ?? ""
                 },
                 {
-    label: "Department",
-    format: (employee) =>
-        employee.department?.name || "",
-},
-{
-    label: "Designation",
-    format: (employee) =>
-        employee.designation?.name || "",
-},
+                    label: "Department",
+                    format: (employee) =>
+                        employee.department
+                            ?.name || ""
+                },
+                {
+                    label: "Designation",
+                    format: (employee) =>
+                        employee.designation
+                            ?.name || ""
+                },
                 {
                     label: "Joining Date",
                     format: (employee) => {
-                        if (!employee.joiningDate) {
+                        if (
+                            !employee.joiningDate
+                        ) {
                             return "";
                         }
 
-                        const date = new Date(
-                            employee.joiningDate
-                        );
+                        const date =
+                            new Date(
+                                employee.joiningDate
+                            );
 
                         if (
                             Number.isNaN(
@@ -326,17 +494,10 @@ function Employees() {
         );
     };
 
-    /*
-     * IMPORT CSV
-     *
-     * Selecting a CSV DOES NOT create employees.
-     * It only reads, normalizes and validates
-     * the file and then opens the preview.
-     */
     const handleImportFile = async (e) => {
-        const file = e.target.files?.[0];
+        const file =
+            e.target.files?.[0];
 
-        // Allow selecting the same file again
         e.target.value = "";
 
         if (!file) {
@@ -345,7 +506,9 @@ function Employees() {
 
         try {
             const rows =
-                parseCSV(await file.text());
+                parseCSV(
+                    await file.text()
+                );
 
             if (rows.length === 0) {
                 toast.error(
@@ -355,213 +518,232 @@ function Employees() {
             }
 
             const headerMap = {
-                "employee id": "employeeId",
-                "employeeid": "employeeId",
-                "name": "name",
-                "department": "department",
-                "designation": "designation",
-                "joining date": "joiningDate",
-                "joiningdate": "joiningDate",
-                "salary": "salary",
-                "status": "status"
+                "employee id":
+                    "employeeId",
+                employeeid:
+                    "employeeId",
+                name: "name",
+                department:
+                    "department",
+                designation:
+                    "designation",
+                "joining date":
+                    "joiningDate",
+                joiningdate:
+                    "joiningDate",
+                salary: "salary",
+                status: "status"
             };
 
             const normalizedRows =
-                rows.map((row, index) => {
+                rows.map(
+                    (row, index) => {
+                        const normalizedRow =
+                            {
+                                _previewRow:
+                                    index + 1,
+                                employeeId:
+                                    "",
+                                name: "",
+                                department:
+                                    "",
+                                designation:
+                                    "",
+                                joiningDate:
+                                    "",
+                                salary: "",
+                                status: ""
+                            };
 
-                    const normalizedRow = {
-                        _previewRow: index + 1,
-                        employeeId: "",
-                        name: "",
-                        department: "",
-                        designation: "",
-                        joiningDate: "",
-                        salary: "",
-                        status: ""
-                    };
+                        Object.entries(
+                            row
+                        ).forEach(
+                            ([key, value]) => {
+                                const normalizedKey =
+                                    key
+                                        .trim()
+                                        .toLowerCase()
+                                        .replace(
+                                            /\s+/g,
+                                            " "
+                                        );
 
-                    Object.entries(row).forEach(
-                        ([key, value]) => {
+                                const mappedKey =
+                                    headerMap[
+                                        normalizedKey
+                                    ];
 
-                            const normalizedKey =
-                                key
-                                    .trim()
-                                    .toLowerCase()
-                                    .replace(
-                                        /\s+/g,
-                                        " "
-                                    );
+                                if (
+                                    !mappedKey
+                                ) {
+                                    return;
+                                }
 
-                            const mappedKey =
-                                headerMap[
-                                    normalizedKey
-                                ];
+                                let normalizedValue =
+                                    value ===
+                                        null ||
+                                    value ===
+                                        undefined
+                                        ? ""
+                                        : String(
+                                            value
+                                        ).trim();
 
-                            if (!mappedKey) {
-                                return;
-                            }
-
-                            let normalizedValue =
-                                value === null ||
-                                value === undefined
-                                    ? ""
-                                    : String(
-                                        value
-                                    ).trim();
-
-                            if (
-                                mappedKey ===
-                                "employeeId"
-                            ) {
-                                normalizedValue =
-                                    normalizedValue
-                                        .toUpperCase();
-                            }
-
-                            if (
-                                mappedKey ===
-                                "joiningDate"
-                            ) {
-                                normalizedValue =
-                                    normalizeImportDate(
+                                if (
+                                    mappedKey ===
+                                    "employeeId"
+                                ) {
+                                    normalizedValue =
                                         normalizedValue
-                                    );
+                                            .toUpperCase();
+                                }
+
+                                if (
+                                    mappedKey ===
+                                    "joiningDate"
+                                ) {
+                                    normalizedValue =
+                                        normalizeImportDate(
+                                            normalizedValue
+                                        );
+                                }
+
+                                normalizedRow[
+                                    mappedKey
+                                ] =
+                                    normalizedValue;
                             }
+                        );
 
-                            normalizedRow[
-                                mappedKey
-                            ] =
-                                normalizedValue;
-                        }
-                    );
-
-                    return normalizedRow;
-                });
+                        return normalizedRow;
+                    }
+                );
 
             const errors = [];
 
-            /*
-             * Validate each row
-             */
-            normalizedRows.forEach((row) => {
+            normalizedRows.forEach(
+                (row) => {
+                    const rowErrors = [];
 
-                const rowErrors = [];
-
-                if (!row.name.trim()) {
-                    rowErrors.push(
-                        "Name is required"
-                    );
-                }
-
-                if (!row.department.trim()) {
-                    rowErrors.push(
-                        "Department is required"
-                    );
-                }
-
-                if (!row.designation.trim()) {
-                    rowErrors.push(
-                        "Designation is required"
-                    );
-                }
-
-                if (!row.salary.trim()) {
-                    rowErrors.push(
-                        "Salary is required"
-                    );
-                } else if (
-                    Number.isNaN(
-                        Number(row.salary)
-                    ) ||
-                    Number(row.salary) <= 0
-                ) {
-                    rowErrors.push(
-                        "Salary must be a valid number greater than 0"
-                    );
-                }
-
-                if (!row.joiningDate.trim()) {
-
-                    rowErrors.push(
-                        "Joining Date is required"
-                    );
-
-                } else if (
-                    !isValidDateString(
-                        row.joiningDate
-                    )
-                ) {
-
-                    rowErrors.push(
-                        "Joining Date must be a valid date"
-                    );
-
-                } else {
-
-                    const joiningDate =
-                        new Date(
-                            `${row.joiningDate}T00:00:00`
-                        );
-
-                    const today =
-                        new Date();
-
-                    today.setHours(
-                        23,
-                        59,
-                        59,
-                        999
-                    );
-
-                    if (
-                        joiningDate >
-                        today
-                    ) {
+                    if (!row.name.trim()) {
                         rowErrors.push(
-                            "Joining Date cannot be in the future"
+                            "Name is required"
                         );
                     }
-                }
 
-                if (!row.status.trim()) {
-                    rowErrors.push(
-                        "Status is required"
-                    );
-                } else if (
-                    ![
-                        "Active",
-                        "Inactive"
-                    ].includes(
-                        row.status
-                    )
-                ) {
-                    rowErrors.push(
-                        "Status must be Active or Inactive"
-                    );
-                }
+                    if (
+                        !row.department.trim()
+                    ) {
+                        rowErrors.push(
+                            "Department is required"
+                        );
+                    }
 
-                if (rowErrors.length > 0) {
-                    errors.push({
-                        row:
-                            row._previewRow,
-                        message:
-                            rowErrors.join(
-                                ", "
+                    if (
+                        !row.designation.trim()
+                    ) {
+                        rowErrors.push(
+                            "Designation is required"
+                        );
+                    }
+
+                    if (!row.salary.trim()) {
+                        rowErrors.push(
+                            "Salary is required"
+                        );
+                    } else if (
+                        Number.isNaN(
+                            Number(
+                                row.salary
                             )
-                    });
-                }
-            });
+                        ) ||
+                        Number(
+                            row.salary
+                        ) <= 0
+                    ) {
+                        rowErrors.push(
+                            "Salary must be a valid number greater than 0"
+                        );
+                    }
 
-            /*
-             * Check duplicate Employee IDs
-             * inside the uploaded CSV.
-             */
+                    if (
+                        !row.joiningDate.trim()
+                    ) {
+                        rowErrors.push(
+                            "Joining Date is required"
+                        );
+                    } else if (
+                        !isValidDateString(
+                            row.joiningDate
+                        )
+                    ) {
+                        rowErrors.push(
+                            "Joining Date must be a valid date"
+                        );
+                    } else {
+                        const joiningDate =
+                            new Date(
+                                `${row.joiningDate}T00:00:00`
+                            );
+
+                        const today =
+                            new Date();
+
+                        today.setHours(
+                            23,
+                            59,
+                            59,
+                            999
+                        );
+
+                        if (
+                            joiningDate >
+                            today
+                        ) {
+                            rowErrors.push(
+                                "Joining Date cannot be in the future"
+                            );
+                        }
+                    }
+
+                    if (!row.status.trim()) {
+                        rowErrors.push(
+                            "Status is required"
+                        );
+                    } else if (
+                        ![
+                            "Active",
+                            "Inactive"
+                        ].includes(
+                            row.status
+                        )
+                    ) {
+                        rowErrors.push(
+                            "Status must be Active or Inactive"
+                        );
+                    }
+
+                    if (
+                        rowErrors.length >
+                        0
+                    ) {
+                        errors.push({
+                            row:
+                                row._previewRow,
+                            message:
+                                rowErrors.join(
+                                    ", "
+                                )
+                        });
+                    }
+                }
+            );
+
             const csvEmployeeIds =
                 new Map();
 
             normalizedRows.forEach(
                 (row) => {
-
                     if (
                         !row.employeeId.trim()
                     ) {
@@ -578,16 +760,13 @@ function Employees() {
                             employeeId
                         )
                     ) {
-
                         errors.push({
                             row:
                                 row._previewRow,
                             message:
                                 `Duplicate Employee ID ${employeeId} in CSV`
                         });
-
                     } else {
-
                         csvEmployeeIds.set(
                             employeeId,
                             row._previewRow
@@ -596,19 +775,13 @@ function Employees() {
                 }
             );
 
-            /*
-             * Check Employee IDs that already
-             * exist in the current database.
-             *
-             * These are NOT errors because the
-             * backend will safely skip them.
-             */
             const existingEmployeeIds =
                 new Set(
                     (employees || [])
                         .map(
                             (employee) =>
-                                employee.employeeId
+                                employee
+                                    .employeeId
                                     ?.trim()
                                     .toUpperCase()
                         )
@@ -624,13 +797,8 @@ function Employees() {
                         )
                 );
 
-            /*
-             * Add duplicate information to
-             * the preview as a warning.
-             */
             duplicateExistingRows.forEach(
                 (row) => {
-
                     const alreadyHasError =
                         errors.some(
                             (error) =>
@@ -638,7 +806,9 @@ function Employees() {
                                 row._previewRow
                         );
 
-                    if (!alreadyHasError) {
+                    if (
+                        !alreadyHasError
+                    ) {
                         errors.push({
                             row:
                                 row._previewRow,
@@ -655,10 +825,10 @@ function Employees() {
 
             setImportErrors(errors);
 
-            setShowImportPreview(true);
-
+            setShowImportPreview(
+                true
+            );
         } catch (error) {
-
             console.error(
                 "CSV Preview Error:",
                 error
@@ -670,13 +840,10 @@ function Employees() {
         }
     };
 
-    /*
-     * CONFIRM IMPORT
-     */
     const confirmImport = async () => {
-
         if (
-            importPreviewRows.length === 0
+            importPreviewRows.length ===
+            0
         ) {
             toast.error(
                 "There is no data to import"
@@ -684,13 +851,6 @@ function Employees() {
             return;
         }
 
-        /*
-         * Separate actual validation errors
-         * from existing employee warnings.
-         *
-         * Existing employees are allowed because
-         * backend will skip them.
-         */
         const blockingErrors =
             importErrors.filter(
                 (error) =>
@@ -699,7 +859,9 @@ function Employees() {
                     )
             );
 
-        if (blockingErrors.length > 0) {
+        if (
+            blockingErrors.length > 0
+        ) {
             toast.error(
                 "Please fix the errors before importing"
             );
@@ -709,11 +871,9 @@ function Employees() {
         setImporting(true);
 
         try {
-
             const rowsForImport =
                 importPreviewRows.map(
                     (row) => {
-
                         const {
                             _previewRow,
                             ...employee
@@ -794,60 +954,38 @@ function Employees() {
                 );
             }
 
-            setShowImportPreview(false);
+            setShowImportPreview(
+                false
+            );
+
             setImportPreviewRows([]);
+
             setImportErrors([]);
 
             await loadEmployees();
-
         } catch (error) {
-
             toast.error(
                 error.response?.data?.message ||
                 "Failed to import employees"
             );
-
         } finally {
             setImporting(false);
         }
     };
 
     const closeImportPreview = () => {
-
         if (importing) {
             return;
         }
 
-        setShowImportPreview(false);
+        setShowImportPreview(
+            false
+        );
+
         setImportPreviewRows([]);
+
         setImportErrors([]);
     };
-
-    const totalPages = Math.max(
-        1,
-        Math.ceil(
-            filteredEmployees.length /
-            employeesPerPage
-        )
-    );
-
-    const safePage = Math.min(
-        currentPage,
-        totalPages
-    );
-
-    const indexOfLastEmployee =
-        safePage * employeesPerPage;
-
-    const indexOfFirstEmployee =
-        indexOfLastEmployee -
-        employeesPerPage;
-
-    const currentEmployees =
-        filteredEmployees.slice(
-            indexOfFirstEmployee,
-            indexOfLastEmployee
-        );
 
     if (loading) {
         return (
@@ -867,19 +1005,16 @@ function Employees() {
 
     return (
         <Layout>
-
-            {/* Header */}
             <div className="page-header">
-
                 <div className="page-title-section">
                     <h1>Employees</h1>
+
                     <p>
                         Manage employee records
                     </p>
                 </div>
 
                 <div className="page-actions">
-
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -910,7 +1045,9 @@ function Employees() {
                         onClick={() =>
                             fileInputRef.current?.click()
                         }
-                        disabled={importing}
+                        disabled={
+                            importing
+                        }
                     >
                         {importing
                             ? "Importing..."
@@ -927,16 +1064,11 @@ function Employees() {
                     >
                         Add Employee
                     </button>
-
                 </div>
-
             </div>
 
-            {/* Filters */}
             <div className="filters-row filters-row--plain">
-
                 <div className="filter-field">
-
                     <label className="form-label">
                         Search
                     </label>
@@ -950,26 +1082,40 @@ function Employees() {
                             setSearch(
                                 e.target.value
                             );
-                            setCurrentPage(1);
+
+                            setCurrentPage(
+                                1
+                            );
+
+                            setSearchParams({
+                                page: "1"
+                            });
                         }}
                     />
-
                 </div>
 
                 <div className="filter-field">
-
                     <label className="form-label">
                         Status
                     </label>
 
                     <select
                         className="filter-select-sm"
-                        value={statusFilter}
+                        value={
+                            statusFilter
+                        }
                         onChange={(e) => {
                             setStatusFilter(
                                 e.target.value
                             );
-                            setCurrentPage(1);
+
+                            setCurrentPage(
+                                1
+                            );
+
+                            setSearchParams({
+                                page: "1"
+                            });
                         }}
                     >
                         <option value="All">
@@ -984,9 +1130,7 @@ function Employees() {
                             Inactive
                         </option>
                     </select>
-
                 </div>
-
             </div>
 
             <ResultsSummary
@@ -999,9 +1143,8 @@ function Employees() {
                 label="employees"
             />
 
-            {/* Employee Table */}
-            {filteredEmployees.length === 0 ? (
-
+            {filteredEmployees.length ===
+            0 ? (
                 <div
                     className="card"
                     style={{
@@ -1019,13 +1162,9 @@ function Employees() {
                         No employees found
                     </p>
                 </div>
-
             ) : (
-
                 <div className="card employees-card">
-
                     <div className="table-responsive table-responsive-fit">
-
                         <table
                             className={`employees-table${
                                 role === "Admin"
@@ -1033,7 +1172,6 @@ function Employees() {
                                     : ""
                             }`}
                         >
-
                             <thead>
                                 <tr>
                                     <th className="col-id">
@@ -1074,10 +1212,10 @@ function Employees() {
                             </thead>
 
                             <tbody>
-
                                 {currentEmployees.map(
-                                    (employee) => {
-
+                                    (
+                                        employee
+                                    ) => {
                                         const departmentName =
                                             getDepartmentName(
                                                 employee.department
@@ -1094,7 +1232,6 @@ function Employees() {
                                                     employee._id
                                                 }
                                             >
-
                                                 <td className="cell-nowrap col-id">
                                                     <strong>
                                                         {
@@ -1114,18 +1251,38 @@ function Employees() {
                                                     }
                                                 </td>
 
-                                                <td className="cell-ellipsis col-dept" title={departmentName || ""}>
-    {departmentName || "—"}
-</td>
+                                                <td
+                                                    className="cell-ellipsis col-dept"
+                                                    title={
+                                                        departmentName ||
+                                                        ""
+                                                    }
+                                                >
+                                                    {
+                                                        departmentName ||
+                                                        "—"
+                                                    }
+                                                </td>
 
-<td className="cell-ellipsis col-desig" title={designationName || ""}>
-    {designationName || "—"}
-</td>
+                                                <td
+                                                    className="cell-ellipsis col-desig"
+                                                    title={
+                                                        designationName ||
+                                                        ""
+                                                    }
+                                                >
+                                                    {
+                                                        designationName ||
+                                                        "—"
+                                                    }
+                                                </td>
 
-                                                <td className="cell-nowrap col-date">
-                                                    {formatShortDate(
-                                                        employee.joiningDate
-                                                    )}
+                                                <td>
+                                                    {employee.joiningDate
+                                                        ? formatShortDate(
+                                                            employee.joiningDate
+                                                        )
+                                                        : "—"}
                                                 </td>
 
                                                 <td className="cell-nowrap col-salary">
@@ -1145,7 +1302,6 @@ function Employees() {
                                                 {role ===
                                                     "Admin" && (
                                                     <td className="cell-actions col-actions">
-
                                                         <RowActionsMenu
                                                             ariaLabel={`Actions for ${employee.name}`}
                                                             items={[
@@ -1155,7 +1311,7 @@ function Employees() {
                                                                     onClick:
                                                                         () =>
                                                                             navigate(
-                                                                                `/employee/${employee._id}`
+                                                                                `/employee/${employee._id}?page=${safePage}`
                                                                             )
                                                                 },
                                                                 {
@@ -1164,7 +1320,7 @@ function Employees() {
                                                                     onClick:
                                                                         () =>
                                                                             navigate(
-                                                                                `/edit-employee/${employee._id}`
+                                                                                `/edit-employee/${employee._id}?page=${safePage}`
                                                                             )
                                                                 },
                                                                 {
@@ -1180,32 +1336,27 @@ function Employees() {
                                                                 }
                                                             ]}
                                                         />
-
                                                     </td>
                                                 )}
-
                                             </tr>
                                         );
                                     }
                                 )}
-
                             </tbody>
-
                         </table>
-
                     </div>
 
-                    {/* Pagination */}
                     <div className="employees-table-pagination">
-
                         <button
                             className="btn btn-secondary"
                             disabled={
-                                safePage === 1
+                                safePage ===
+                                1
                             }
                             onClick={() =>
-                                setCurrentPage(
-                                    safePage - 1
+                                changePage(
+                                    safePage -
+                                        1
                                 )
                             }
                         >
@@ -1231,28 +1382,22 @@ function Employees() {
                                 totalPages
                             }
                             onClick={() =>
-                                setCurrentPage(
-                                    safePage + 1
+                                changePage(
+                                    safePage +
+                                        1
                                 )
                             }
                         >
                             Next
                         </button>
-
                     </div>
-
                 </div>
             )}
 
-            {/* Import Preview */}
             {showImportPreview && (
-
                 <div className="import-preview-overlay">
-
                     <div className="import-preview-modal">
-
                         <div className="import-preview-header">
-
                             <div>
                                 <h2>
                                     Import Employees
@@ -1277,11 +1422,9 @@ function Employees() {
                             >
                                 ×
                             </button>
-
                         </div>
 
                         <div className="import-preview-summary">
-
                             <div>
                                 <strong>
                                     {
@@ -1318,26 +1461,21 @@ function Employees() {
                                     Valid Rows
                                 </span>
                             </div>
-
                         </div>
 
                         {importErrors.length >
                             0 && (
-
                             <div className="import-preview-errors">
-
                                 <strong>
                                     Review these rows:
                                 </strong>
 
                                 <ul>
-
                                     {importErrors.map(
                                         (
                                             error,
                                             index
                                         ) => (
-
                                             <li
                                                 key={
                                                     index
@@ -1352,22 +1490,15 @@ function Employees() {
                                                     error.message
                                                 }
                                             </li>
-
                                         )
                                     )}
-
                                 </ul>
-
                             </div>
-
                         )}
 
                         <div className="import-preview-table-wrapper">
-
                             <table className="import-preview-table">
-
                                 <thead>
-
                                     <tr>
                                         <th>
                                             Row
@@ -1401,16 +1532,13 @@ function Employees() {
                                             Status
                                         </th>
                                     </tr>
-
                                 </thead>
 
                                 <tbody>
-
                                     {importPreviewRows.map(
                                         (
                                             employee
                                         ) => {
-
                                             const rowErrors =
                                                 importErrors.filter(
                                                     (
@@ -1453,7 +1581,6 @@ function Employees() {
                                                                 : ""
                                                     }
                                                 >
-
                                                     <td>
                                                         {
                                                             employee._previewRow
@@ -1508,20 +1635,15 @@ function Employees() {
                                                             "—"
                                                         }
                                                     </td>
-
                                                 </tr>
                                             );
                                         }
                                     )}
-
                                 </tbody>
-
                             </table>
-
                         </div>
 
                         <div className="import-preview-footer">
-
                             <button
                                 type="button"
                                 className="btn btn-secondary"
@@ -1553,15 +1675,11 @@ function Employees() {
                                     ? "Importing..."
                                     : `Confirm Import (${importPreviewRows.length})`}
                             </button>
-
                         </div>
-
                     </div>
-
                 </div>
             )}
 
-            {/* Delete Confirmation */}
             <ConfirmationModal
                 isOpen={
                     deleteConfirm.isOpen
@@ -1586,7 +1704,6 @@ function Employees() {
                 }
                 isDangerous={true}
             />
-
         </Layout>
     );
 }
