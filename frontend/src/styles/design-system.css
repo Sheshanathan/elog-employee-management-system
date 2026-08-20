@@ -3057,131 +3057,278 @@ h3 {
 }
 
 /* ============================================================================
-   NOTIFICATION BELL
+   NOTIFICATION PANEL — NO INTERNAL SCROLL + TOP ALIGNMENT
    ============================================================================ */
 
+/* Keep notification + admin/user section aligned at the top */
+.topnav-user {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  position: relative;
+}
+
+/* Bell remains centered within its own area */
 .notification-bell {
-    position: relative;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.notification-bell-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--text-primary);
-    cursor: pointer;
-}
-
-.notification-bell-btn:hover {
-    background: var(--surface-hover);
-}
-
-.notification-bell-badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: var(--radius-full);
-    background: var(--error-600);
-    color: var(--text-inverse);
-    font-size: 0.6875rem;
-    font-weight: var(--font-weight-bold);
-    line-height: 18px;
-    text-align: center;
-}
-
+/* Notification panel expands based on content */
 .notification-panel {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    width: min(360px, 90vw);
-    max-height: 420px;
-    background: var(--surface-primary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    z-index: 1200;
-    overflow: hidden;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+
+  width: min(380px, 90vw);
+
+  /* Don't force a small height */
+  max-height: none !important;
+  height: auto !important;
+
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+
+  border: 1px solid var(--border-primary) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg) !important;
+
+  z-index: 1200;
+  overflow: hidden !important;
 }
+
+/* Remove internal scrolling */
+.notification-panel-body {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+
+  background-color: #ffffff !important;
+}
+
+/* Notification item */
+.notification-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+
+  border: none !important;
+  border-bottom: 1px solid #eeeaf7 !important;
+
+  text-align: left;
+  white-space: normal !important;
+}
+
+/* Allow message to continue onto the next line */
+.notification-item-message {
+  display: block;
+  width: 100%;
+
+  color: #5c5c5c !important;
+
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere;
+
+  line-height: 1.5;
+}
+
+/* Title should also wrap if it is long */
+.notification-item-title {
+  display: block;
+  width: 100%;
+
+  color: #1a1a1a !important;
+
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+
+  line-height: 1.4;
+}
+
+/* Time */
+.notification-item-time {
+  display: block;
+  width: 100%;
+
+  color: #8a8a8a !important;
+
+  white-space: normal !important;
+}
+
+/* Unread notification */
+.notification-item.is-unread {
+  background-color: var(--brand-purple-soft) !important;
+  border-left: 3px solid var(--brand-purple) !important;
+}
+
+/* Hover */
+.notification-item:hover {
+  background-color: #f5f2ff !important;
+}
+
+/* Header stays at the top */
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 52px;
+
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+
+  border-bottom: 1px solid var(--border-primary) !important;
+}
+
+/* Empty state */
+.notification-empty {
+  padding: var(--spacing-6);
+  margin: 0;
+
+  background-color: #ffffff !important;
+  color: var(--text-secondary) !important;
+
+  text-align: center;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .notification-panel {
+    position: fixed;
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
+/* ============================================================================
+   NOTIFICATION PANEL HEADER — BRAND STYLING
+   ============================================================================ */
 
 .notification-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3) var(--spacing-4);
-    border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+
+  /* Better spacing */
+  padding: var(--spacing-4) var(--spacing-5);
+  min-height: 60px;
+
+  /* App brand colors */
+  background-color: var(--brand-purple) !important;
+  color: var(--brand-peach) !important;
+
+  border-bottom: 1px solid var(--brand-purple-hover) !important;
 }
 
-.notification-mark-all {
-    border: none;
-    background: none;
-    color: var(--brand-purple);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
+/* Notification heading */
+.notification-panel-header h3,
+.notification-panel-header h4,
+.notification-panel-header strong,
+.notification-panel-header span {
+  color: var(--brand-peach) !important;
+  margin: 0;
 }
 
-.notification-panel-body {
-    max-height: 360px;
-    overflow-y: auto;
+/* If heading uses a specific class */
+.notification-panel-header .notification-title {
+  color: var(--brand-peach) !important;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  line-height: 1.4;
 }
 
-.notification-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-1);
-    width: 100%;
-    padding: var(--spacing-3) var(--spacing-4);
-    border: none;
-    border-bottom: 1px solid var(--border-primary);
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
+/* Mark all button */
+.notification-panel-header .notification-mark-all {
+  color: var(--brand-peach) !important;
+  background: transparent !important;
+  border: none !important;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
-.notification-item:hover {
-    background: var(--surface-hover);
+.notification-panel-header .notification-mark-all:hover {
+  background-color: rgba(255, 187, 92, 0.15) !important;
+  color: var(--brand-peach) !important;
 }
 
-.notification-item.is-unread {
-    background: var(--brand-purple-soft);
+/* If there is a close button in the header */
+.notification-panel-header button {
+  color: var(--brand-peach) !important;
+  background: transparent !important;
 }
 
-.notification-item-title {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
+.notification-panel-header button:hover {
+  background-color: rgba(255, 187, 92, 0.15) !important;
+  color: var(--brand-peach) !important;
 }
 
-.notification-item-message {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    line-height: var(--line-height-normal);
-    word-break: break-word;
+/* ============================================================================
+   NOTIFICATION HEADER — FINAL SPACING POLISH
+   ============================================================================ */
+
+.notification-panel-header {
+  padding: 16px 20px !important;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  background-color: var(--brand-purple) !important;
+  color: var(--brand-peach) !important;
+
+  border-bottom: 1px solid var(--brand-purple-hover) !important;
 }
 
-.notification-item-time {
-    font-size: var(--font-size-xs);
-    color: var(--text-tertiary);
+/* Proper heading spacing and alignment */
+.notification-panel-header h3,
+.notification-panel-header h4,
+.notification-panel-header strong,
+.notification-panel-header .notification-title {
+  margin: 0 !important;
+  padding: 0 !important;
+
+  color: var(--brand-peach) !important;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+
+  text-align: left;
 }
 
-.notification-empty {
-    padding: var(--spacing-6);
-    text-align: center;
-    color: var(--text-tertiary);
-    margin: 0;
+/* Mark-all button gets comfortable spacing */
+.notification-panel-header .notification-mark-all {
+  margin: 0 !important;
+  padding: 7px 10px !important;
+
+  color: var(--brand-peach) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--radius-sm);
+
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 
-.topnav-user {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-2);
+.notification-panel-header .notification-mark-all:hover {
+  background-color: rgba(255, 187, 92, 0.15) !important;
+  color: var(--brand-peach) !important;
 }
