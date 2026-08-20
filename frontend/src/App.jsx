@@ -22,6 +22,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import MyLeave from "./pages/MyLeave";
+import LeaveManagement from "./pages/LeaveManagement";
 
 const admin = (Page) => (
     <ProtectedRoute allowedRole="Admin">{Page}</ProtectedRoute>
@@ -52,6 +54,18 @@ function App() {
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="*" element={<NotFound />} />
+                <Route path="/my-leave" element={
+        <ProtectedRoute>
+            <MyLeave />
+        </ProtectedRoute>
+    }
+/>
+                <Route path="/leave-management" element={
+        <ProtectedRoute>
+            <LeaveManagement />
+        </ProtectedRoute>
+    }
+/>
             </Routes>
         </BrowserRouter>
     );

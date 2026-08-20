@@ -222,11 +222,94 @@ function validateResetPassword(req, res, next) {
     next();
 }
 
+function validateLeaveData(req, res, next) {
+    const {
+        leaveType,
+        fromDate,
+        toDate,
+        reason
+    } = req.body;
+
+    const errors = {};
+
+    const validLeaveTypes = [
+        "Casual Leave",
+        "Sick Leave",
+        "Earned Leave",
+        "Unpaid Leave",
+        "Optional Holiday"
+    ];
+
+    if (!leaveType) {
+        errors.leaveType = "Leave type is required";
+    } else if (!validLeaveTypes.includes(leaveType)) {
+        errors.leaveType = "Invalid leave type";
+    }
+
+    if (!fromDate) {
+        errors.fromDate = "From date is required";
+    }
+
+    if (!toDate) {
+        errors.toDate = "To date is required";
+    }
+
+    if (fromDate) {
+        const parsedFromDate = new Date(fromDate);
+
+        if (isNaN(parsedFromDate.getTime())) {
+            errors.fromDate = "From date must be a valid date";
+        }
+    }
+
+    if (toDate) {
+        const parsedToDate = new Date(toDate);
+
+        if (isNaN(parsedToDate.getTime())) {
+            errors.toDate = "To date must be a valid date";
+        }
+    }
+
+    if (fromDate && toDate) {
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        if (
+            !isNaN(start.getTime()) &&
+            !isNaN(end.getTime()) &&
+            end < start
+        ) {
+            errors.toDate =
+                "To date cannot be before from date";
+        }
+    }
+
+    if (!reason || !reason.trim()) {
+        errors.reason = "Reason is required";
+    } else if (reason.trim().length < 3) {
+        errors.reason =
+            "Reason must contain at least 3 characters";
+    } else if (reason.trim().length > 500) {
+        errors.reason =
+            "Reason cannot exceed 500 characters";
+    }
+
+    if (Object.keys(errors).length > 0) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors
+        });
+    }
+
+    next();
+}
+
 
 module.exports = {
     validateEmployeeData,
     validateUserData,
     validateLogin,
     validateForgotPassword,
-    validateResetPassword
+    validateResetPassword,
+    validateLeaveData
 };

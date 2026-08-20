@@ -56,6 +56,9 @@ function Sidebar() {
                         <Link to="/attendance" className="nav-link">
                             Attendance
                         </Link>
+                        <Link to="/leave-management" className="nav-link">
+                        Leave Management
+                        </Link>
                         <Link to="/users" className="nav-link">
                             Users
                         </Link>
@@ -75,6 +78,9 @@ function Sidebar() {
                         <div className="nav-section-title">My Records</div>
                         <Link to="/attendance" className="nav-link">
                             My Attendance
+                        </Link>
+                        <Link to="/my-leave" className="nav-link">
+                        My Leave
                         </Link>
                     </>
                 )}
