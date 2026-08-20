@@ -5,6 +5,13 @@ const mongoose = require("mongoose");
 const transporter = require("../config/mail");
 const User = require("../models/User");
 
+function escapeRegex(value) {
+    return value.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+}
+
 async function getEmployees(req, res) {
     try {
         const filter = {};
@@ -43,14 +50,332 @@ async function addEmployee(req, res) {
             designation,
             joiningDate,
             employmentType,
-            status
+            status,
+            newDepartmentName,
+            newDesignationName
         } = req.body;
+
+        /*
+         * =========================================================
+         * BASIC INPUT NORMALISATION
+         * =========================================================
+         */
+
+        const employeeName =
+            typeof name === "string" ? name.trim() : "";
+
+        const employeeEmail =
+            typeof email === "string"
+                ? email.trim().toLowerCase()
+                : "";
+
+        const employeePhone =
+            typeof phone === "string"
+                ? phone.trim()
+                : "";
+
+        const employeeWorkLocation =
+            typeof workLocation === "string"
+                ? workLocation.trim()
+                : "";
+
+        const employeeJoiningDate =
+            typeof joiningDate === "string"
+                ? joiningDate.trim()
+                : joiningDate;
+
+        const employeeStatus =
+            typeof status === "string"
+                ? status.trim()
+                : status;
+
+        const employeeEmploymentType =
+            typeof employmentType === "string" &&
+            employmentType.trim()
+                ? employmentType.trim()
+                : "Full-time";
+
+        /*
+         * =========================================================
+         * VALIDATE REQUIRED BASIC FIELDS
+         * =========================================================
+         */
+
+        const validationErrors = {};
+
+        if (!employeeName) {
+            validationErrors.name = "Name is required";
+        }
+
+        if (
+            salary === undefined ||
+            salary === null ||
+            salary === "" ||
+            Number(salary) <= 0 ||
+            Number.isNaN(Number(salary))
+        ) {
+            validationErrors.salary =
+                "Salary must be greater than 0";
+        }
+
+        if (!employeeJoiningDate) {
+            validationErrors.joiningDate =
+                "Joining date is required";
+        }
+
+        if (!employeeStatus) {
+            validationErrors.status =
+                "Status is required";
+        }
+
+        if (
+            employeeStatus &&
+            !["Active", "Inactive"].includes(employeeStatus)
+        ) {
+            validationErrors.status =
+                "Status must be Active or Inactive";
+        }
+
+        if (
+            employeeEmploymentType &&
+            ![
+                "Full-time",
+                "Part-time",
+                "Contract",
+                "Intern"
+            ].includes(employeeEmploymentType)
+        ) {
+            validationErrors.employmentType =
+                "Employment Type must be Full-time, Part-time, Contract, or Intern";
+        }
+
+        if (Object.keys(validationErrors).length > 0) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: validationErrors
+            });
+        }
+
+        /*
+         * =========================================================
+         * DEPARTMENT
+         *
+         * Existing:
+         *     department = MongoDB ObjectId
+         *
+         * New:
+         *     newDepartmentName = typed department name
+         * =========================================================
+         */
+
+        let departmentId = null;
+
+        const typedDepartmentName =
+            typeof newDepartmentName === "string"
+                ? newDepartmentName.trim()
+                : "";
+
+        const existingDepartmentId =
+            typeof department === "string"
+                ? department.trim()
+                : "";
+
+        if (typedDepartmentName) {
+            /*
+             * User selected "Add New Department".
+             */
+
+            const existingDepartment =
+                await Department.findOne({
+                    name: {
+                        $regex: `^${escapeRegex(
+                            typedDepartmentName
+                        )}$`,
+                        $options: "i"
+                    }
+                });
+
+            if (existingDepartment) {
+                return res.status(409).json({
+                    message:
+                        "Department already exists. Please select it from the list.",
+                    errors: {
+                        department:
+                            "Department already exists"
+                    }
+                });
+            }
+
+            const newDepartment =
+                await Department.create({
+                    name: typedDepartmentName,
+                    status: "Active"
+                });
+
+            departmentId = newDepartment._id;
+        } else if (existingDepartmentId) {
+            /*
+             * User selected an existing department.
+             */
+
+            if (
+                !mongoose.Types.ObjectId.isValid(
+                    existingDepartmentId
+                )
+            ) {
+                return res.status(400).json({
+                    message: "Invalid department",
+                    errors: {
+                        department:
+                            "Invalid department selected"
+                    }
+                });
+            }
+
+            const existingDepartment =
+                await Department.findById(
+                    existingDepartmentId
+                );
+
+            if (!existingDepartment) {
+                return res.status(400).json({
+                    message: "Department not found",
+                    errors: {
+                        department:
+                            "Selected department does not exist"
+                    }
+                });
+            }
+
+            departmentId =
+                existingDepartment._id;
+        }
+
+        if (!departmentId) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: {
+                    department:
+                        "Department is required"
+                }
+            });
+        }
+
+        /*
+         * =========================================================
+         * DESIGNATION
+         *
+         * Existing:
+         *     designation = MongoDB ObjectId
+         *
+         * New:
+         *     newDesignationName = typed designation name
+         * =========================================================
+         */
+
+        let designationId = null;
+
+        const typedDesignationName =
+            typeof newDesignationName === "string"
+                ? newDesignationName.trim()
+                : "";
+
+        const existingDesignationId =
+            typeof designation === "string"
+                ? designation.trim()
+                : "";
+
+        if (typedDesignationName) {
+            /*
+             * User selected "Add New Designation".
+             */
+
+            const existingDesignation =
+                await Designation.findOne({
+                    name: {
+                        $regex: `^${escapeRegex(
+                            typedDesignationName
+                        )}$`,
+                        $options: "i"
+                    }
+                });
+
+            if (existingDesignation) {
+                return res.status(409).json({
+                    message:
+                        "Designation already exists. Please select it from the list.",
+                    errors: {
+                        designation:
+                            "Designation already exists"
+                    }
+                });
+            }
+
+            const newDesignation =
+                await Designation.create({
+                    name: typedDesignationName,
+                    status: "Active"
+                });
+
+            designationId =
+                newDesignation._id;
+        } else if (existingDesignationId) {
+            /*
+             * User selected an existing designation.
+             */
+
+            if (
+                !mongoose.Types.ObjectId.isValid(
+                    existingDesignationId
+                )
+            ) {
+                return res.status(400).json({
+                    message: "Invalid designation",
+                    errors: {
+                        designation:
+                            "Invalid designation selected"
+                    }
+                });
+            }
+
+            const existingDesignation =
+                await Designation.findById(
+                    existingDesignationId
+                );
+
+            if (!existingDesignation) {
+                return res.status(400).json({
+                    message: "Designation not found",
+                    errors: {
+                        designation:
+                            "Selected designation does not exist"
+                    }
+                });
+            }
+
+            designationId =
+                existingDesignation._id;
+        }
+
+        if (!designationId) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: {
+                    designation:
+                        "Designation is required"
+                }
+            });
+        }
+
+        /*
+         * =========================================================
+         * GENERATE EMPLOYEE ID
+         * =========================================================
+         */
 
         const lastEmployee =
             await Employee.findOne()
-                .sort({
-                    employeeId: -1
-                });
+                .sort({ employeeId: -1 });
 
         let employeeNumber = 1;
 
@@ -58,38 +383,94 @@ async function addEmployee(req, res) {
             lastEmployee &&
             lastEmployee.employeeId
         ) {
-            const lastNumber =
-                parseInt(
-                    lastEmployee.employeeId
-                        .replace("EMP", "")
-                );
+            const lastNumber = parseInt(
+                lastEmployee.employeeId.replace(
+                    "EMP",
+                    ""
+                ),
+                10
+            );
 
-            if (!isNaN(lastNumber)) {
+            if (!Number.isNaN(lastNumber)) {
                 employeeNumber =
                     lastNumber + 1;
             }
         }
 
-        const employeeId =
-            `EMP${String(employeeNumber).padStart(3, "0")}`;
+        let employeeId =
+            `EMP${String(employeeNumber).padStart(
+                3,
+                "0"
+            )}`;
+
+        while (
+            await Employee.exists({
+                employeeId
+            })
+        ) {
+            employeeNumber++;
+
+            employeeId =
+                `EMP${String(employeeNumber).padStart(
+                    3,
+                    "0"
+                )}`;
+        }
+
+        /*
+         * =========================================================
+         * CREATE EMPLOYEE
+         * =========================================================
+         */
 
         const employee =
             await Employee.create({
                 employeeId,
-                name,
-                email: email || undefined,
-                phone: phone || undefined,
-                workLocation: workLocation || undefined,
-                salary,
-                department,
-                designation,
-                joiningDate,
+
+                name: employeeName,
+
+                email:
+                    employeeEmail || undefined,
+
+                phone:
+                    employeePhone || undefined,
+
+                workLocation:
+                    employeeWorkLocation || undefined,
+
+                salary: Number(salary),
+
+                department: departmentId,
+
+                designation: designationId,
+
+                joiningDate:
+                    employeeJoiningDate,
+
                 employmentType:
-                    employmentType || "Full-time",
-                status
+                    employeeEmploymentType,
+
+                status: employeeStatus
             });
 
-        res.status(201).json({
+        /*
+         * =========================================================
+         * POPULATE RESPONSE
+         * =========================================================
+         */
+
+        await employee.populate([
+            {
+                path: "department",
+                select: "name"
+            },
+            {
+                path: "designation",
+                select: "name"
+            }
+        ]);
+
+        return res.status(201).json({
             message:
                 "Employee Created Successfully",
             employee
@@ -101,13 +482,46 @@ async function addEmployee(req, res) {
             error
         );
 
+        /*
+         * Duplicate key
+         */
         if (error.code === 11000) {
+            const duplicateField =
+                Object.keys(
+                    error.keyPattern || {}
+                )[0];
+
+            if (
+                duplicateField === "email"
+            ) {
+                return res.status(409).json({
+                    message:
+                        "Email already exists",
+                    errors: {
+                        email:
+                            "Email already exists"
+                    }
+                });
+            }
+
+            if (
+                duplicateField === "employeeId"
+            ) {
+                return res.status(409).json({
+                    message:
+                        "Employee ID already exists"
+                });
+            }
+
             return res.status(409).json({
                 message:
-                    "Employee ID or Email already exists"
+                    "A duplicate employee record already exists"
             });
         }
 
+        /*
+         * Mongoose validation
+         */
         if (
             error.name ===
             "ValidationError"
@@ -118,8 +532,7 @@ async function addEmployee(req, res) {
                 error.errors
             ).forEach((field) => {
                 errors[field] =
-                    error.errors[field]
-                        .message;
+                    error.errors[field].message;
             });
 
             return res.status(400).json({
@@ -129,13 +542,27 @@ async function addEmployee(req, res) {
             });
         }
 
-        res.status(500).json({
+        console.error(
+            "Unexpected Add Employee Error:",
+            error
+        );
+
+        return res.status(500).json({
             message:
                 "Failed to create employee"
         });
     }
 }
 
+/*
+ * Escape user input before using it in a MongoDB regex.
+ */
+function escapeRegex(value) {
+    return value.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+}
 async function getEmployeeById(
     req,
     res
