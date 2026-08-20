@@ -53,19 +53,13 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="*" element={<NotFound />} />
                 <Route path="/my-leave" element={
-        <ProtectedRoute>
-            <MyLeave />
-        </ProtectedRoute>
-    }
-/>
-                <Route path="/leave-management" element={
-        <ProtectedRoute>
-            <LeaveManagement />
-        </ProtectedRoute>
-    }
-/>
+                    <ProtectedRoute allowedRole="Employee">
+                        <MyLeave />
+                    </ProtectedRoute>
+                } />
+                <Route path="/leave-management" element={admin(<LeaveManagement />)} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
     );

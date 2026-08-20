@@ -67,6 +67,24 @@ const leaveSchema = new mongoose.Schema(
         rejectionReason: {
             type: String,
             default: null
+        },
+
+        adminRemark: {
+            type: String,
+            default: null,
+            trim: true,
+            maxlength: 500
+        },
+
+        cancelledBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
+
+        cancelledAt: {
+            type: Date,
+            default: null
         }
     },
     {

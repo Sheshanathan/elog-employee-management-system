@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import AppLogo from "./AppLogo";
+import NotificationBell from "./NotificationBell";
 import { ConfirmationModal } from "./FormField";
 import "../styles/design-system.css";
 
@@ -52,16 +53,21 @@ function Navbar() {
                             <NavLink to="/departments" className={linkClass}>Departments</NavLink>
                             <NavLink to="/designations" className={linkClass}>Designations</NavLink>
                             <NavLink to="/attendance" className={linkClass}>Attendance</NavLink>
+                            <NavLink to="/leave-management" className={linkClass}>Leave Management</NavLink>
                             <NavLink to="/users" className={linkClass}>Users</NavLink>
                         </>
                     )}
 
                     {role === "Employee" && (
-                        <NavLink to="/attendance" className={linkClass}>My Attendance</NavLink>
+                        <>
+                            <NavLink to="/attendance" className={linkClass}>My Attendance</NavLink>
+                            <NavLink to="/my-leave" className={linkClass}>My Leave</NavLink>
+                        </>
                     )}
                 </div>
 
                 <div className="topnav-user">
+                    <NotificationBell />
                     <button
                         type="button"
                         className="topnav-user-btn"

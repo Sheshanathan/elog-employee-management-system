@@ -376,6 +376,8 @@ export function StatusBadge({ status }) {
     badgeClass = 'badge-warning';
   } else if (status === 'Leave' || status === 'On Leave') {
     badgeClass = 'badge-info';
+  } else if (status === 'Cancelled') {
+    badgeClass = 'badge-primary';
   }
 
   return <span className={`badge table-badge ${badgeClass}`}>{status}</span>;

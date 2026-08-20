@@ -11,7 +11,6 @@ function Sidebar() {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("name");
-
         navigate("/");
     };
 
@@ -32,8 +31,8 @@ function Sidebar() {
             </div>
 
             <nav className="sidebar-nav">
-                <Link
-                    to={role === "Employee" ? "/my-dashboard" : "/dashboard"}
+                <Link 
+                    to={role === "Employee" ? "/my-dashboard" : "/dashboard"} 
                     className="nav-link"
                 >
                     Dashboard
@@ -42,55 +41,32 @@ function Sidebar() {
                 {role === "Admin" && (
                     <>
                         <div className="nav-section-title">Management</div>
-                        <Link to="/employees" className="nav-link">
-                            Employees
-                        </Link>
-                        <Link to="/departments" className="nav-link">
-                            Departments
-                        </Link>
-                        <Link to="/designations" className="nav-link">
-                            Designations
-                        </Link>
+                        <Link to="/employees" className="nav-link">Employees</Link>
+                        <Link to="/departments" className="nav-link">Departments</Link>
+                        <Link to="/designations" className="nav-link">Designations</Link>
 
                         <div className="nav-section-title">Operations</div>
-                        <Link to="/attendance" className="nav-link">
-                            Attendance
-                        </Link>
-                        <Link to="/leave-management" className="nav-link">
-                        Leave Management
-                        </Link>
-                        <Link to="/users" className="nav-link">
-                            Users
-                        </Link>
+                        <Link to="/attendance" className="nav-link">Attendance</Link>
+                        <Link to="/leave-management" className="nav-link">Leave Management</Link>
+                        <Link to="/users" className="nav-link">Users</Link>
 
                         <div className="nav-section-title">Actions</div>
-                        <Link to="/add-employee" className="nav-link">
-                            Add Employee
-                        </Link>
-                        <Link to="/create-user" className="nav-link">
-                            Create User
-                        </Link>
+                        <Link to="/add-employee" className="nav-link">Add Employee</Link>
+                        <Link to="/create-user" className="nav-link">Create User</Link>
                     </>
                 )}
 
                 {role === "Employee" && (
                     <>
                         <div className="nav-section-title">My Records</div>
-                        <Link to="/attendance" className="nav-link">
-                            My Attendance
-                        </Link>
-                        <Link to="/my-leave" className="nav-link">
-                        My Leave
-                        </Link>
+                        <Link to="/attendance" className="nav-link">My Attendance</Link>
+                        <Link to="/my-leave" className="nav-link">My Leave</Link>
                     </>
                 )}
             </nav>
 
             <div className="sidebar-footer">
-                <button
-                    onClick={logout}
-                    className="btn btn-danger w-full"
-                >
+                <button onClick={logout} className="btn btn-danger w-full">
                     Logout
                 </button>
             </div>
