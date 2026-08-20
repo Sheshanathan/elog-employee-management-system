@@ -6,7 +6,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: [true, "Name is required"],
             trim: true,
-            minlength: [2, "Name must contain at least 2 characters"],
+            minlength: [
+                2,
+                "Name must contain at least 2 characters"
+            ],
             validate: {
                 validator: function (value) {
                     return /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(
@@ -32,6 +35,18 @@ const userSchema = new mongoose.Schema(
                 },
                 message: "Enter a valid email address"
             }
+        },
+
+        /*
+         * Phone Number
+         */
+        phone: {
+            type: String,
+            trim: true,
+            match: [
+                /^[0-9+()\-\s]{7,20}$/,
+                "Enter a valid phone number"
+            ]
         },
 
         password: {
@@ -61,7 +76,13 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// A database constraint complements the controller check and prevents races.
-userSchema.index({ employee: 1 }, { unique: true, sparse: true });
+// Prevent one employee from having multiple user accounts.
+userSchema.index(
+    { employee: 1 },
+    {
+        unique: true,
+        sparse: true
+    }
+);
 
 module.exports = mongoose.model("User", userSchema);

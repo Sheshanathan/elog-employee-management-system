@@ -39,7 +39,9 @@ function validateEmployeeData(req, res, next) {
         designation,
         joiningDate,
         salary,
-        status
+        status,
+        newDepartmentName,
+        newDesignationName
     } = req.body;
 
     const errors = {};
@@ -51,39 +53,40 @@ function validateEmployeeData(req, res, next) {
             "Name should contain only letters and spaces and must contain at least 2 characters";
     }
 
-    if (!department) {
-        errors.department = "Department is required";
-    } else if (!validateObjectId(department)) {
-        errors.department = "A valid department must be selected";
+    const hasNewDepartment =
+        typeof newDepartmentName === "string" && newDepartmentName.trim();
+
+    if (!hasNewDepartment) {
+        if (!department) {
+            errors.department = "Department is required";
+        } else if (!validateObjectId(department)) {
+            errors.department = "A valid department must be selected";
+        }
     }
 
-    if (!designation) {
-        errors.designation = "Designation is required";
-    } else if (!validateObjectId(designation)) {
-        errors.designation = "A valid designation must be selected";
+    const hasNewDesignation =
+        typeof newDesignationName === "string" && newDesignationName.trim();
+
+    if (!hasNewDesignation) {
+        if (!designation) {
+            errors.designation = "Designation is required";
+        } else if (!validateObjectId(designation)) {
+            errors.designation = "A valid designation must be selected";
+        }
     }
 
     if (joiningDate) {
         const date = new Date(joiningDate);
-
         if (isNaN(date.getTime())) {
             errors.joiningDate = "Invalid joining date";
         } else if (date > new Date()) {
-            errors.joiningDate =
-                "Joining date cannot be in the future";
+            errors.joiningDate = "Joining date cannot be in the future";
         }
     }
 
-    if (
-        salary === undefined ||
-        salary === null ||
-        salary === ""
-    ) {
+    if (salary === undefined || salary === null || salary === "") {
         errors.salary = "Salary is required";
-    } else if (
-        typeof salary !== "number" ||
-        !Number.isFinite(salary)
-    ) {
+    } else if (typeof salary !== "number" || !Number.isFinite(salary)) {
         errors.salary = "Salary must be a valid number";
     } else if (salary <= 0) {
         errors.salary = "Salary must be greater than zero";
@@ -104,7 +107,6 @@ function validateEmployeeData(req, res, next) {
 
     next();
 }
-
 
 function validateUserData(req, res, next) {
     const {

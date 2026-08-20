@@ -9,157 +9,657 @@ import { getDesignationName } from "../utils/designation";
 import { getDashboardPath } from "../utils/auth";
 import "../styles/design-system.css";
 
-const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+const EMAIL_PATTERN =
+    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const PHONE_PATTERN =
+    /^[0-9+()\-\s]{7,20}$/;
+
+const NAME_PATTERN =
+    /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
 function Profile() {
     const navigate = useNavigate();
-    const role = localStorage.getItem("role");
-    const name = localStorage.getItem("name");
 
+    const role = localStorage.getItem("role");
+
+    const [user, setUser] = useState(null);
     const [employee, setEmployee] = useState(null);
-    const [loading, setLoading] = useState(role === "Employee");
+
+    const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ name: "", email: "", phone: "" });
+
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        phone: ""
+    });
+
     const [errors, setErrors] = useState({});
 
+    /*
+     * =====================================================
+     * LOAD PROFILE
+     * =====================================================
+     */
     useEffect(() => {
-        if (role !== "Employee") return;
-        (async () => {
+        let mounted = true;
+
+        const loadProfile = async () => {
             try {
-                const response = await api.get("/employees/my/profile");
-                setEmployee(response.data);
+                /*
+                 * User profile endpoint works for both
+                 * Admin and Employee.
+                 */
+                const response =
+                    await api.get(
+                        "/users/my/profile"
+                    );
+
+                if (!mounted) {
+                    return;
+                }
+
+                const profile =
+                    response.data;
+
+                setUser(profile);
+
+                /*
+                 * Employee information is populated
+                 * when the logged-in user has an employee.
+                 */
+                if (
+                    profile.role === "Employee" &&
+                    profile.employee
+                ) {
+                    setEmployee(
+                        profile.employee
+                    );
+                }
+
                 setForm({
-                    name: response.data.name || "",
-                    email: response.data.email || "",
-                    phone: response.data.phone || "",
+                    name:
+                        profile.name || "",
+                    email:
+                        profile.email || "",
+                    phone:
+                        profile.phone || ""
                 });
-            } catch {
-                // Fall back to basic account info only.
+
+            } catch (error) {
+                if (!mounted) {
+                    return;
+                }
+
+                toast.error(
+                    error.response?.data
+                        ?.message ||
+                    "Failed to load profile"
+                );
             } finally {
-                setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                }
             }
-        })();
-    }, [role]);
+        };
 
-    function validateField(field, value) {
+        loadProfile();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    /*
+     * =====================================================
+     * VALIDATION
+     * =====================================================
+     */
+    const validateField = (
+        field,
+        value
+    ) => {
         let error = "";
+
         if (field === "name") {
-            if (!value.trim()) error = "Name is required";
-            else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(value.trim())) error = "Name should contain only letters and spaces";
+            const name =
+                String(
+                    value || ""
+                ).trim();
+
+            if (!name) {
+                error =
+                    "Name is required";
+            } else if (
+                name.length < 2
+            ) {
+                error =
+                    "Name must contain at least 2 characters";
+            } else if (
+                name.length > 50
+            ) {
+                error =
+                    "Name cannot exceed 50 characters";
+            } else if (
+                !NAME_PATTERN.test(
+                    name
+                )
+            ) {
+                error =
+                    "Name should contain only letters and spaces";
+            }
         }
-        if (field === "email" && value && !EMAIL_PATTERN.test(value.trim())) {
-            error = "Enter a valid email address";
+
+        if (field === "email") {
+            const email =
+                String(
+                    value || ""
+                ).trim();
+
+            if (!email) {
+                error =
+                    "Email is required";
+            } else if (
+                !EMAIL_PATTERN.test(
+                    email
+                )
+            ) {
+                error =
+                    "Enter a valid email address";
+            }
         }
-        if (field === "phone" && value && !/^[0-9+()\-\s]{7,20}$/.test(value.trim())) {
-            error = "Enter a valid phone number";
+
+        if (field === "phone") {
+            const phone =
+                String(
+                    value || ""
+                ).trim();
+
+            /*
+             * Phone is optional.
+             */
+            if (
+                phone &&
+                !PHONE_PATTERN.test(
+                    phone
+                )
+            ) {
+                error =
+                    "Enter a valid phone number";
+            }
         }
-        setErrors((prev) => ({ ...prev, [field]: error }));
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                [field]: error
+            })
+        );
+
         return error;
-    }
+    };
 
-    function handleChange(e) {
-        const { name: field, value } = e.target;
-        setForm((prev) => ({ ...prev, [field]: value }));
-    }
+    /*
+     * =====================================================
+     * HANDLE CHANGE
+     * =====================================================
+     */
+    const handleChange = (e) => {
+        const {
+            name,
+            value
+        } = e.target;
 
-    async function handleSave() {
-        const nameError = validateField("name", form.name);
-        const emailError = validateField("email", form.email);
-        const phoneError = validateField("phone", form.phone);
-        if (nameError || emailError || phoneError) {
-            toast.error("Please fix the errors in the form");
+        setForm(
+            (previous) => ({
+                ...previous,
+                [name]: value
+            })
+        );
+
+        if (errors[name]) {
+            setErrors(
+                (previous) => ({
+                    ...previous,
+                    [name]: ""
+                })
+            );
+        }
+    };
+
+    /*
+     * =====================================================
+     * CANCEL EDIT
+     * =====================================================
+     */
+    const handleCancel = () => {
+        setEditing(false);
+
+        setForm({
+            name:
+                user?.name || "",
+            email:
+                user?.email || "",
+            phone:
+                user?.phone || ""
+        });
+
+        setErrors({});
+    };
+
+    /*
+     * =====================================================
+     * SAVE PROFILE
+     * =====================================================
+     */
+    const handleSave = async () => {
+        const nameError =
+            validateField(
+                "name",
+                form.name
+            );
+
+        const emailError =
+            validateField(
+                "email",
+                form.email
+            );
+
+        const phoneError =
+            validateField(
+                "phone",
+                form.phone
+            );
+
+        if (
+            nameError ||
+            emailError ||
+            phoneError
+        ) {
+            toast.error(
+                "Please fix the errors in the form"
+            );
+
             return;
         }
 
-        setSaving(true);
         try {
-            const response = await api.patch("/employees/my/profile", {
-                name: form.name.trim(),
-                email: form.email.trim() || undefined,
-                phone: form.phone.trim() || undefined,
+            setSaving(true);
+
+            const response =
+                await api.patch(
+                    "/users/my/profile",
+                    {
+                        name:
+                            form.name.trim(),
+
+                        email:
+                            form.email
+                                .trim()
+                                .toLowerCase(),
+
+                        phone:
+                            form.phone.trim()
+                    }
+                );
+
+            const updatedUser =
+                response.data.user;
+
+            setUser(updatedUser);
+
+            /*
+             * Keep localStorage account name
+             * synchronized with the updated profile.
+             */
+            localStorage.setItem(
+                "name",
+                updatedUser.name
+            );
+
+            /*
+             * Update local employee reference
+             * if present.
+             */
+            if (
+                updatedUser.role ===
+                    "Employee" &&
+                updatedUser.employee
+            ) {
+                setEmployee(
+                    updatedUser.employee
+                );
+            }
+
+            setForm({
+                name:
+                    updatedUser.name ||
+                    "",
+                email:
+                    updatedUser.email ||
+                    "",
+                phone:
+                    updatedUser.phone ||
+                    ""
             });
-            setEmployee(response.data.employee);
-            localStorage.setItem("name", response.data.employee.name);
-            toast.success("Profile updated successfully");
+
             setEditing(false);
+
+            setErrors({});
+
+            toast.success(
+                "Profile updated successfully"
+            );
+
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to update profile");
+            const backendErrors =
+                error.response?.data
+                    ?.errors;
+
+            if (backendErrors) {
+                setErrors(
+                    backendErrors
+                );
+            }
+
+            toast.error(
+                error.response?.data
+                    ?.message ||
+                "Failed to update profile"
+            );
         } finally {
             setSaving(false);
         }
-    }
+    };
 
-    if (loading) return <Layout><LoadingSpinner /></Layout>;
+    /*
+     * =====================================================
+     * LOADING
+     * =====================================================
+     */
+    if (loading) {
+        return (
+            <Layout>
+                <LoadingSpinner />
+            </Layout>
+        );
+    }
 
     return (
         <Layout>
             <div className="page-header">
                 <div className="page-title-section">
                     <h1>My Profile</h1>
-                    <p>Account and role details</p>
+
+                    <p>
+                        Account and role details
+                    </p>
                 </div>
+
                 <div className="page-actions">
-                    {role === "Employee" && !editing && (
-                        <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Profile</button>
+                    {!editing && (
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() =>
+                                setEditing(
+                                    true
+                                )
+                            }
+                        >
+                            Edit Profile
+                        </button>
                     )}
-                    <button className="btn btn-secondary" onClick={() => navigate(getDashboardPath())}>
+
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() =>
+                            navigate(
+                                getDashboardPath()
+                            )
+                        }
+                    >
                         Back to Dashboard
                     </button>
                 </div>
             </div>
 
             <div className="employee-profile-grid">
-                <div className="employee-profile-card">
-                    <h2>Account Information</h2>
 
-                    {role === "Employee" && editing ? (
+                {/* =================================================
+                    ACCOUNT INFORMATION
+                ================================================= */}
+                <div className="employee-profile-card">
+                    <h2>
+                        Account Information
+                    </h2>
+
+                    {editing ? (
                         <>
-                            <FormField label="Full Name" name="name" value={form.name} onChange={handleChange}
-                                onBlur={(e) => validateField("name", e.target.value)} error={errors.name} required />
-                            <FormField label="Email" name="email" type="email" value={form.email} onChange={handleChange}
-                                onBlur={(e) => validateField("email", e.target.value)} error={errors.email} />
-                            <FormField label="Phone" name="phone" type="tel" value={form.phone} onChange={handleChange}
-                                onBlur={(e) => validateField("phone", e.target.value)} error={errors.phone} />
+                            <FormField
+                                label="Full Name"
+                                name="name"
+                                type="text"
+                                value={
+                                    form.name
+                                }
+                                onChange={
+                                    handleChange
+                                }
+                                onBlur={(e) =>
+                                    validateField(
+                                        "name",
+                                        e.target
+                                            .value
+                                    )
+                                }
+                                error={
+                                    errors.name
+                                }
+                                required
+                                placeholder="Enter full name"
+                            />
+
+                            <FormField
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={
+                                    form.email
+                                }
+                                onChange={
+                                    handleChange
+                                }
+                                onBlur={(e) =>
+                                    validateField(
+                                        "email",
+                                        e.target
+                                            .value
+                                    )
+                                }
+                                error={
+                                    errors.email
+                                }
+                                required
+                                placeholder="employee@company.com"
+                            />
+
+                            <FormField
+                                label="Phone"
+                                name="phone"
+                                type="tel"
+                                value={
+                                    form.phone
+                                }
+                                onChange={
+                                    handleChange
+                                }
+                                onBlur={(e) =>
+                                    validateField(
+                                        "phone",
+                                        e.target
+                                            .value
+                                    )
+                                }
+                                error={
+                                    errors.phone
+                                }
+                                placeholder="+91 9876543210"
+                            />
+
                             <div className="form-actions">
                                 <button
+                                    type="button"
                                     className="btn btn-secondary"
-                                    onClick={() => {
-                                        setEditing(false);
-                                        setForm({ name: employee?.name || "", email: employee?.email || "", phone: employee?.phone || "" });
-                                        setErrors({});
-                                    }}
-                                    disabled={saving}
+                                    onClick={
+                                        handleCancel
+                                    }
+                                    disabled={
+                                        saving
+                                    }
                                 >
                                     Cancel
                                 </button>
-                                <button className={`btn btn-primary ${saving ? "is-loading" : ""}`} onClick={handleSave} disabled={saving}>
-                                    {saving ? "Saving..." : "Save Changes"}
+
+                                <button
+                                    type="button"
+                                    className={`btn btn-primary ${
+                                        saving
+                                            ? "is-loading"
+                                            : ""
+                                    }`}
+                                    onClick={
+                                        handleSave
+                                    }
+                                    disabled={
+                                        saving
+                                    }
+                                >
+                                    {saving
+                                        ? "Saving..."
+                                        : "Save Changes"}
                                 </button>
                             </div>
                         </>
                     ) : (
                         <>
-                            <div className="profile-field"><span>Name</span><strong>{name || employee?.name || "—"}</strong></div>
-                            <div className="profile-field"><span>Email</span><strong>{employee?.email || "—"}</strong></div>
-                            <div className="profile-field"><span>Phone</span><strong>{employee?.phone || "—"}</strong></div>
-                            <div className="profile-field"><span>Role</span><strong>{role || "—"}</strong></div>
+                            <div className="profile-field">
+                                <span>
+                                    Name
+                                </span>
+
+                                <strong>
+                                    {user?.name ||
+                                        "—"}
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Email
+                                </span>
+
+                                <strong>
+                                    {user?.email ||
+                                        "—"}
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Phone
+                                </span>
+
+                                <strong>
+                                    {user?.phone ||
+                                        "—"}
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Role
+                                </span>
+
+                                <strong>
+                                    {user?.role ||
+                                        role ||
+                                        "—"}
+                                </strong>
+                            </div>
                         </>
                     )}
                 </div>
 
-                {role === "Employee" && employee && (
-                    <div className="employee-profile-card">
-                        <h2>Employment Information</h2>
-                        <div className="profile-field"><span>Employee ID</span><strong>{employee.employeeId}</strong></div>
-                        <div className="profile-field"><span>Department</span><strong>{getDepartmentName(employee.department)}</strong></div>
-                        <div className="profile-field"><span>Designation</span><strong>{getDesignationName(employee.designation)}</strong></div>
-                        <div className="profile-field">
-                            <span>Joining Date</span>
-                            <strong>{employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString("en-GB") : "N/A"}</strong>
+
+                {/* =================================================
+                    EMPLOYMENT INFORMATION
+                    Only Employee sees this.
+                ================================================= */}
+                {user?.role ===
+                    "Employee" &&
+                    employee && (
+                        <div className="employee-profile-card">
+                            <h2>
+                                Employment Information
+                            </h2>
+
+                            <div className="profile-field">
+                                <span>
+                                    Employee ID
+                                </span>
+
+                                <strong>
+                                    {
+                                        employee.employeeId
+                                    }
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Department
+                                </span>
+
+                                <strong>
+                                    {getDepartmentName(
+                                        employee.department
+                                    )}
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Designation
+                                </span>
+
+                                <strong>
+                                    {getDesignationName(
+                                        employee.designation
+                                    )}
+                                </strong>
+                            </div>
+
+                            <div className="profile-field">
+                                <span>
+                                    Joining Date
+                                </span>
+
+                                <strong>
+                                    {employee.joiningDate
+                                        ? new Date(
+                                            employee.joiningDate
+                                        ).toLocaleDateString(
+                                            "en-GB"
+                                        )
+                                        : "N/A"}
+                                </strong>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
             </div>
         </Layout>
     );

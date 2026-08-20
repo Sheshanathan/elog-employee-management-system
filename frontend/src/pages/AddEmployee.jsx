@@ -95,10 +95,6 @@ function AddEmployee() {
                     return;
                 }
 
-                console.error(
-                    "Load Employee Options Error:",
-                    error
-                );
 
                 setOptionsError(true);
 
@@ -783,23 +779,10 @@ if (addingDesignation) {
         formData.designation;
 }
 
-console.log(
-    "CREATE EMPLOYEE PAYLOAD:",
-    JSON.stringify(payload, null, 2)
-);
-
-    try {
+     try {
         setLoading(true);
 
-        const response = await api.post(
-            "/employees",
-            payload
-        );
-
-        console.log(
-            "CREATE EMPLOYEE SUCCESS:",
-            response.data
-        );
+        await api.post("/employees", payload);
 
         toast.success(
             "Employee created successfully"
@@ -808,34 +791,6 @@ console.log(
         navigate("/employees");
 
     } catch (error) {
-        console.error(
-            "========== CREATE EMPLOYEE ERROR =========="
-        );
-
-        console.error(
-            "HTTP Status:",
-            error.response?.status
-        );
-
-        console.error(
-            "Backend Response:",
-            error.response?.data
-        );
-
-        console.error(
-            "Request Payload:",
-            payload
-        );
-
-        console.error(
-            "Full Axios Error:",
-            error
-        );
-
-        console.error(
-            "=========================================="
-        );
-
         const backendErrors =
             error.response?.data?.errors;
 
@@ -852,6 +807,7 @@ console.log(
         setLoading(false);
     }
 };
+
 
     if (optionsLoading) {
         return (
@@ -983,7 +939,7 @@ console.log(
                                 <div className="form-field">
                                     <label>
                                         New Department
-                                        <span className="required">
+                                        <span className="required-mark">
                                             *
                                         </span>
                                     </label>
@@ -1105,7 +1061,7 @@ console.log(
                                 <div className="form-field">
                                     <label>
                                         New Designation
-                                        <span className="required">
+                                        <span className="required-mark">
                                             *
                                         </span>
                                     </label>

@@ -238,5 +238,66 @@ router.delete(
     userController.deleteUser
 );
 
+/*
+ * =========================================================
+ * MY PROFILE
+ * =========================================================
+ */
+
+/**
+ * @swagger
+ * /users/my/profile:
+ *   get:
+ *     summary: Get logged-in user's profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Failed to retrieve profile
+ */
+router.get(
+    "/users/my/profile",
+    auth,
+    userController.getMyProfile
+);
+
+
+/**
+ * @swagger
+ * /users/my/profile:
+ *   patch:
+ *     summary: Update logged-in user's profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation failed
+ *       401:
+ *         description: Authentication required
+ *       409:
+ *         description: Email already exists
+ *       500:
+ *         description: Failed to update profile
+ */
+router.patch(
+    "/users/my/profile",
+    auth,
+    userController.updateMyProfile
+);
+
+
+module.exports = router;
 
 module.exports = router;
