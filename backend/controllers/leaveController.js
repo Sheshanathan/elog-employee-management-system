@@ -2,6 +2,7 @@ const Leave = require("../models/Leave");
 const Employee = require("../models/Employee");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const audit = require("../utils/audit");
 const {
     notifyLeaveApplied,
     notifyLeaveApproved,
@@ -132,6 +133,55 @@ async function findOverlappingLeave(employeeId, fromDate, toDate, excludeLeaveId
     }
 
     return await Leave.findOne(query);
+}
+
+/*
+ * Check whether employee has enough leave balance.
+ * Pending and Approved leaves both count toward requested usage.
+ * Unpaid Leave has no balance restriction.
+ */
+async function checkLeaveBalance(employeeId, leaveType, requestedDays, excludeLeaveId = null) {
+    const totalBalance = {
+        "Casual Leave": 12,
+        "Sick Leave": 12,
+        "Earned Leave": 15,
+        "Unpaid Leave": null,
+        "Optional Holiday": 5
+    };
+
+    const totalAllowed = totalBalance[leaveType];
+
+    // Unpaid Leave has no balance limit
+    if (totalAllowed === null) {
+        return {
+            allowed: true,
+            remaining: null
+        };
+    }
+
+    const query = {
+        employee: employeeId,
+        leaveType,
+        status: { $in: ["Pending", "Approved"] }
+    };
+
+    if (excludeLeaveId) {
+        query._id = { $ne: excludeLeaveId };
+    }
+
+    const existingLeaves = await Leave.find(query).select("days");
+
+    const usedDays = existingLeaves.reduce(
+        (total, leave) => total + Number(leave.days || 0),
+        0
+    );
+
+    const remaining = Math.max(0, totalAllowed - usedDays);
+
+    return {
+        allowed: usedDays + requestedDays <= totalAllowed,
+        remaining
+    };
 }
 
 /*
@@ -454,6 +504,19 @@ exports.createLeave = async (req, res) => {
             });
         }
 
+        // Check leave balance
+const balanceCheck = await checkLeaveBalance(
+    employee._id,
+    leaveType,
+    calculatedDays
+);
+
+if (!balanceCheck.allowed) {
+    return res.status(400).json({
+        message: `Insufficient ${leaveType} balance. Available balance: ${balanceCheck.remaining} day(s), requested: ${calculatedDays} day(s).`
+    });
+}
+
         // Create leave
         const leave = await Leave.create({
             employee: employee._id,
@@ -614,6 +677,20 @@ exports.updateLeave = async (req, res) => {
             });
         }
 
+        // Check leave balance, excluding the current leave request
+const balanceCheck = await checkLeaveBalance(
+    employee._id,
+    leaveType,
+    calculatedDays,
+    leave._id
+);
+
+if (!balanceCheck.allowed) {
+    return res.status(400).json({
+        message: `Insufficient ${leaveType} balance. Available balance: ${balanceCheck.remaining} day(s), requested: ${calculatedDays} day(s).`
+    });
+}
+
         // Update leave
         leave.leaveType = leaveType;
         leave.fromDate = startOfDay(parsedFromDate);
@@ -699,6 +776,17 @@ exports.cancelLeave = async (req, res) => {
         leave.cancelledAt = new Date();
 
         await leave.save();
+        await audit(
+    req.user.id,
+    "LEAVE_CANCELLED",
+    "Leave",
+    leave._id,
+    { status: "Pending" },
+    {
+        status: "Cancelled",
+        cancelledAt: leave.cancelledAt
+    }
+);
 
         await notifyLeaveWithdrawn(leave, employee.name).catch((error) => {
             console.error("Leave withdrawn notification error:", error);
@@ -797,6 +885,18 @@ exports.approveLeave = async (req, res) => {
         leave.adminRemark = adminRemark || null;
 
         await leave.save();
+        await audit(
+    req.user.id,
+    "LEAVE_APPROVED",
+    "Leave",
+    leave._id,
+    { status: "Pending" },
+    {
+        status: "Approved",
+        approvedAt: leave.approvedAt,
+        adminRemark: leave.adminRemark
+    }
+);
 
         await leave.populate([
             {
@@ -903,6 +1003,18 @@ exports.rejectLeave = async (req, res) => {
         leave.approvedAt = new Date();
 
         await leave.save();
+        await audit(
+    req.user.id,
+    "LEAVE_REJECTED",
+    "Leave",
+    leave._id,
+    { status: "Pending" },
+    {
+        status: "Rejected",
+        rejectionReason: leave.rejectionReason,
+        adminRemark: leave.adminRemark
+    }
+);
 
         await leave.populate("employee", "employeeId name email");
 
@@ -973,13 +1085,27 @@ exports.adminCancelLeave = async (req, res) => {
             });
         }
 
+        const previousStatus = leave.status;
         leave.status = "Cancelled";
         leave.cancelledBy = req.user.id;
         leave.cancelledAt = new Date();
         leave.adminRemark = adminRemark || leave.adminRemark;
 
         await leave.save();
-
+        await audit(
+    req.user.id,
+    "LEAVE_CANCELLED_BY_ADMIN",
+    "Leave",
+    leave._id,
+    {
+        status: previousStatus
+    },
+    {
+        status: "Cancelled",
+        adminRemark: leave.adminRemark,
+        cancelledAt: leave.cancelledAt
+    }
+);
         await leave.populate([
             { path: "employee", select: "employeeId name email" },
             { path: "cancelledBy", select: "name email role" }
@@ -1033,11 +1159,22 @@ exports.deleteLeave = async (req, res) => {
             });
         }
 
-        await Leave.findByIdAndDelete(id);
+       const deletedLeave = leave.toObject();
 
-        return res.status(200).json({
-            message: "Leave record permanently deleted"
-        });
+await Leave.findByIdAndDelete(id);
+
+await audit(
+    req.user.id,
+    "LEAVE_DELETED",
+    "Leave",
+    leave._id,
+    deletedLeave,
+    null
+);
+
+return res.status(200).json({
+    message: "Leave record permanently removed"
+});
 
     } catch (error) {
         console.error("Delete Leave Error:", error);

@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 async function login(req, res) {
     try {
@@ -73,23 +74,26 @@ async function forgotPassword(req, res) {
         });
 
         if (!user) {
-            return res.status(404).json({
-                message: "User Not Found"
-            });
-        }
+    return res.status(200).json({
+        message: "If an account exists with this email, a reset link has been sent"
+    });
+}
 
-        const token = jwt.sign(
-            {
-                id: user._id
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "15m"
-            }
-        );
+       const resetToken = crypto.randomBytes(32).toString("hex");
 
-        const resetLink =
-            `${process.env.FRONTEND_URL}/reset-password/${token}`;
+user.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+user.passwordResetExpires = new Date(
+    Date.now() + 15 * 60 * 1000
+);
+
+await user.save();
+
+const resetLink =
+    `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
        await transporter.sendMail({
     from: `"elog - Employee Management System" <${process.env.EMAIL_USER}>`,
@@ -266,65 +270,48 @@ async function forgotPassword(req, res) {
 
 async function resetPassword(req, res) {
     try {
-        const {
-            token
-        } = req.params;
+        const { token } = req.params;
+        const { password } = req.body;
 
-        const {
-            password
-        } = req.body;
-
-        let decoded;
-
-        try {
-            decoded = jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
-        } catch (error) {
-            if (error.name === "TokenExpiredError") {
-                return res.status(400).json({
-                    message: "Reset link has expired"
-                });
-            }
-
+        if (!token) {
             return res.status(400).json({
                 message: "Invalid reset link"
             });
         }
 
-        if (
-            !mongoose.Types.ObjectId.isValid(
-                decoded.id
-            )
-        ) {
-            return res.status(400).json({
-                message: "Invalid user ID"
-            });
-        }
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
 
-        const hashedPassword =
-            await bcrypt.hash(password, 10);
-
-        const user =
-            await User.findByIdAndUpdate(
-                decoded.id,
-                {
-                    password: hashedPassword
-                },
-                {
-                    new: true,
-                    runValidators: true
-                }
-            );
+        const user = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: {
+                $gt: new Date()
+            }
+        });
 
         if (!user) {
-            return res.status(404).json({
-                message: "User Not Found"
+            return res.status(400).json({
+                message: "Invalid or expired reset link"
             });
         }
 
-        res.status(200).json({
+        const hashedPassword = await bcrypt.hash(
+            password,
+            10
+        );
+
+        user.password = hashedPassword;
+
+        // Invalidate the reset token immediately
+        // so it cannot be used again.
+        user.passwordResetToken = null;
+        user.passwordResetExpires = null;
+
+        await user.save();
+
+        return res.status(200).json({
             message: "Password Updated Successfully"
         });
 
@@ -348,7 +335,7 @@ async function resetPassword(req, res) {
             });
         }
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Failed to reset password"
         });
     }
@@ -357,22 +344,27 @@ async function validateResetToken(req, res) {
     try {
         const { token } = req.params;
 
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        );
-
-        if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
+        if (!token) {
             return res.status(400).json({
                 message: "Invalid reset link. Please request a new reset link."
             });
         }
 
-        const user = await User.findById(decoded.id);
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const user = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: {
+                $gt: new Date()
+            }
+        });
 
         if (!user) {
-            return res.status(404).json({
-                message: "User Not Found"
+            return res.status(400).json({
+                message: "Invalid or expired reset link. Please request a new reset link."
             });
         }
 
@@ -381,15 +373,13 @@ async function validateResetToken(req, res) {
         });
 
     } catch (error) {
+        console.error(
+            "Validate Reset Token Error:",
+            error
+        );
 
-        if (error.name === "TokenExpiredError") {
-            return res.status(400).json({
-                message: "Reset link has expired"
-            });
-        }
-
-        return res.status(400).json({
-            message: "Invalid reset link. Please request a new reset link."
+        return res.status(500).json({
+            message: "Failed to validate reset link"
         });
     }
 }
