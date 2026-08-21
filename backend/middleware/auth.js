@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Employee = require("../models/Employee");
 
 async function auth(req, res, next) {
     try {
@@ -19,7 +20,7 @@ async function auth(req, res, next) {
         );
 
         const user = await User.findById(decoded.id)
-            .select("_id role isActive");
+            .select("_id role isActive employee");
 
         if (!user) {
             return res.status(401).json({
@@ -27,21 +28,43 @@ async function auth(req, res, next) {
             });
         }
 
+        // Check User account
         if (!user.isActive) {
             return res.status(403).json({
                 message: "Your account has been disabled"
             });
         }
 
+        // Check Employee account
+        if (user.role === "Employee" && user.employee) {
+            const employee = await Employee.findById(user.employee);
+
+            if (!employee) {
+                return res.status(403).json({
+                    message: "Employee profile not found"
+                });
+            }
+
+            if (employee.status === "Inactive") {
+                return res.status(403).json({
+                    message:
+                        "Your employee account is inactive. Please contact the administrator."
+                });
+            }
+        }
+
         req.user = {
             id: user._id,
             role: user.role,
-            isActive: user.isActive
+            isActive: user.isActive,
+            employee: user.employee
         };
 
         next();
 
     } catch (error) {
+        console.error("Auth Error:", error);
+
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({
                 message: "Token expired"

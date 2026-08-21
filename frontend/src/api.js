@@ -16,19 +16,64 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
     (response) => response,
+
     (error) => {
-        if (error.response?.status === 401) {
-            const requestUrl = error.config?.url || "";
-            const isAuthRequest = /\/(login|forgot-password|reset-password)(\/|$|\?)/.test(
+        const status = error.response?.status;
+        const message = error.response?.data?.message || "";
+        const requestUrl = error.config?.url || "";
+
+        // Do not redirect authentication pages.
+        const isAuthRequest =
+            /\/(login|forgot-password|reset-password|validate-reset-token)(\/|$|\?)/.test(
                 requestUrl
             );
 
-            if (!isAuthRequest) {
+        /*
+         * 401
+         * Token missing, invalid or expired.
+         */
+        if (status === 401 && !isAuthRequest) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            localStorage.removeItem("name");
+
+            window.location.href = "/login?message=session-expired";
+
+            return Promise.reject(error);
+        }
+
+        /*
+         * 403
+         * Account disabled OR employee became inactive.
+         */
+        if (status === 403 && !isAuthRequest) {
+            const lowerMessage = message.toLowerCase();
+
+            const isDisabledAccount =
+                lowerMessage.includes("account has been disabled") ||
+                lowerMessage.includes("account is disabled");
+
+            const isInactiveEmployee =
+                lowerMessage.includes("employee account is inactive") ||
+                lowerMessage.includes("employee profile is inactive");
+
+            if (isDisabledAccount || isInactiveEmployee) {
                 localStorage.removeItem("token");
                 localStorage.removeItem("role");
                 localStorage.removeItem("name");
 
+                /*
+                 * Store the exact backend message so Login.jsx
+                 * can display it after redirect.
+                 */
+                sessionStorage.setItem(
+                    "loginMessage",
+                    message
+                );
+
                 window.location.href = "/login";
+
+                return Promise.reject(error);
             }
         }
 
