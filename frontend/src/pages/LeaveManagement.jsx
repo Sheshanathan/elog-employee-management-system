@@ -59,6 +59,11 @@ function LeaveManagement() {
         leaveId: null,
         label: "",
     });
+    const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    leaveId: null,
+    label: "",
+    });
 
     const leavesPerPage = 10;
 
@@ -311,6 +316,53 @@ function LeaveManagement() {
             setActionLoading(false);
         }
     }
+    function handleDeleteClick(leave) {
+    setDeleteConfirm({
+        isOpen: true,
+        leaveId: leave._id,
+        label: `${leave.employee?.name || "Employee"} • ${leave.leaveType} • ${formatDate(leave.fromDate)} to ${formatDate(leave.toDate)}`,
+    });
+}
+
+function closeDeleteConfirm() {
+    if (actionLoading) return;
+
+    setDeleteConfirm({
+        isOpen: false,
+        leaveId: null,
+        label: "",
+    });
+}
+
+async function handleDeleteConfirm() {
+    if (!deleteConfirm.leaveId) return;
+
+    try {
+        setActionLoading(true);
+
+        await api.delete(`/leaves/${deleteConfirm.leaveId}`);
+
+        toast.success("Leave record permanently deleted");
+
+        setDeleteConfirm({
+            isOpen: false,
+            leaveId: null,
+            label: "",
+        });
+
+        closeDetails();
+
+        await fetchLeaveData();
+
+    } catch (error) {
+        toast.error(
+            error.response?.data?.message ||
+            "Failed to delete leave record"
+        );
+    } finally {
+        setActionLoading(false);
+    }
+}
 
     if (loading) {
         return (
@@ -544,6 +596,17 @@ function LeaveManagement() {
                                                             onClick: () => handleAdminCancelClick(leave),
                                                         }]
                                                         : []),
+                                                        ...( ["Cancelled", "Rejected"].includes(leave.status)
+                                                        ? [
+                                                            {
+                                                                key: "delete",
+                                                                label: "Delete Record",
+                                                                danger: true,
+                                                                onClick: () => handleDeleteClick(leave),
+                                                            },
+                                                        ]
+                                                        : []
+                                                    ),
                                                 ]}
                                             />
                                         </td>
@@ -644,9 +707,20 @@ function LeaveManagement() {
                                     Cancel Leave
                                 </button>
                             )}
+                            {["Cancelled", "Rejected"].includes(selectedLeave.status) && (
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    disabled={actionLoading}
+                                    onClick={() => handleDeleteClick(selectedLeave)}
+                                >
+                                    Delete Record
+                                </button>
+                            )}
                             <button type="button" className="btn btn-secondary" onClick={closeDetails}>
                                 Close
                             </button>
+
                         </div>
                     </div>
                 </div>
@@ -810,6 +884,18 @@ function LeaveManagement() {
                 cancelText="Keep Request"
                 onConfirm={handleAdminCancelConfirm}
                 onCancel={() => setAdminCancelConfirm({ isOpen: false, leaveId: null, label: "" })}
+                isLoading={actionLoading}
+                isDangerous={true}
+            />
+            <ConfirmationModal
+                isOpen={deleteConfirm.isOpen}
+                title="Delete Leave Record"
+                message="Are you sure you want to permanently delete this leave record?"
+                warning={deleteConfirm.label}
+                confirmText="Delete Record"
+                cancelText="Keep Record"
+                onConfirm={handleDeleteConfirm}
+                onCancel={closeDeleteConfirm}
                 isLoading={actionLoading}
                 isDangerous={true}
             />

@@ -794,16 +794,20 @@ router.patch(
 
 /*
  * =========================================================
- * DELETE LEAVE (ADMIN - EXCEPTIONAL CLEANUP ONLY)
+ * DELETE LEAVE (ADMIN)
  * =========================================================
  */
+
 
 /**
  * @swagger
  * /leaves/{id}:
  *   delete:
- *     summary: Permanently remove a leave record (exceptional cleanup)
- *     description: Permanently remove a cancelled or rejected leave record for exceptional administrative cleanup only. Normal leave workflow should use cancel/reject actions instead.
+ *     summary: Permanently delete a leave record
+ *     description: |
+ *       Permanently deletes a leave record from the database.
+ *       This action is restricted to Admin users and is allowed
+ *       only for leave records with Cancelled or Rejected status.
  *     tags:
  *       - Leave Management
  *     security:
@@ -814,21 +818,45 @@ router.patch(
  *         required: true
  *         schema:
  *           type: string
- *         description: MongoDB ObjectId of the leave request
- *         example: 68b123456789abcdef123456
+ *         description: MongoDB ID of the leave record
+ *         example: 66c8a9f5e1234567890abcd
  *     responses:
  *       200:
- *         description: Leave request deleted successfully
+ *         description: Leave record permanently deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Leave record permanently deleted
  *       400:
- *         description: Invalid leave ID or record is not eligible for permanent removal
+ *         description: Invalid ID or leave status does not allow deletion
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Only cancelled or rejected leave records can be permanently deleted
  *       401:
- *         description: Authentication required
+ *         description: Authentication required or invalid token
  *       403:
  *         description: Admin access required
  *       404:
  *         description: Leave request not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Leave request not found
  *       500:
- *         description: Failed to delete leave request
+ *         description: Server error
  */
 router.delete(
     "/leaves/:id",
