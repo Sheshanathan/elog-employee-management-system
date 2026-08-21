@@ -3057,7 +3057,7 @@ h3 {
 }
 
 /* ============================================================================
-   NOTIFICATION PANEL — NO INTERNAL SCROLL + TOP ALIGNMENT
+   NOTIFICATION PANEL — SCROLLABLE NOTIFICATION LIST
    ============================================================================ */
 
 /* Keep notification + admin/user section aligned at the top */
@@ -3068,7 +3068,7 @@ h3 {
   position: relative;
 }
 
-/* Bell remains centered within its own area */
+/* Bell */
 .notification-bell {
   position: relative;
   display: flex;
@@ -3077,17 +3077,13 @@ h3 {
   flex-shrink: 0;
 }
 
-/* Notification panel expands based on content */
+/* Notification panel */
 .notification-panel {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
 
   width: min(380px, 90vw);
-
-  /* Don't force a small height */
-  max-height: none !important;
-  height: auto !important;
 
   background-color: #ffffff !important;
   color: #1a1a1a !important;
@@ -3097,19 +3093,111 @@ h3 {
   box-shadow: var(--shadow-lg) !important;
 
   z-index: 1200;
+
+  /* Prevent the whole panel from growing endlessly */
   overflow: hidden !important;
 }
 
-/* Remove internal scrolling */
+/* =========================================================
+   FIXED HEADER + SCROLLABLE BODY
+   ========================================================= */
+
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 16px 20px !important;
+  min-height: 64px;
+
+  background-color: var(--brand-purple) !important;
+  color: var(--brand-peach) !important;
+
+  border-bottom: 1px solid var(--brand-purple-hover) !important;
+}
+
+/* Heading */
+.notification-panel-header h3,
+.notification-panel-header h4,
+.notification-panel-header strong,
+.notification-panel-header .notification-title {
+  margin: 0 !important;
+  padding: 0 !important;
+
+  color: var(--brand-peach) !important;
+
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+
+  text-align: left;
+}
+
+/* Mark all button */
+.notification-panel-header .notification-mark-all {
+  margin: 0 !important;
+  padding: 7px 10px !important;
+
+  color: var(--brand-peach) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--radius-sm);
+
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.notification-panel-header .notification-mark-all:hover {
+  background-color: rgba(255, 187, 92, 0.15) !important;
+  color: var(--brand-peach) !important;
+}
+
+/* =========================================================
+   ONLY NOTIFICATION LIST SCROLLS
+   ========================================================= */
+
 .notification-panel-body {
-  max-height: none !important;
+  max-height: 380px !important;
   height: auto !important;
-  overflow: visible !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 
   background-color: #ffffff !important;
 }
 
-/* Notification item */
+/* Scrollbar */
+.notification-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-panel-body::-webkit-scrollbar-track {
+  background: #f3f1f8;
+}
+
+.notification-panel-body::-webkit-scrollbar-thumb {
+  background: #c4b5fd;
+  border-radius: 10px;
+}
+
+.notification-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-purple);
+}
+
+/* Firefox */
+.notification-panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: #c4b5fd #f3f1f8;
+}
+
+/* =========================================================
+   NOTIFICATION ITEM
+   ========================================================= */
+
 .notification-item {
   display: flex;
   flex-direction: column;
@@ -3126,9 +3214,38 @@ h3 {
 
   text-align: left;
   white-space: normal !important;
+
+  cursor: pointer;
 }
 
-/* Allow message to continue onto the next line */
+.notification-item:hover {
+  background-color: #f5f2ff !important;
+}
+
+/* Unread notification */
+.notification-item.is-unread {
+  background-color: var(--brand-purple-soft) !important;
+  border-left: 3px solid var(--brand-purple) !important;
+}
+
+/* Title */
+.notification-item-title {
+  display: block;
+  width: 100%;
+
+  margin-bottom: 4px;
+
+  color: #1a1a1a !important;
+
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+
+  line-height: 1.4;
+}
+
+/* Message */
 .notification-item-message {
   display: block;
   width: 100%;
@@ -3144,57 +3261,19 @@ h3 {
   line-height: 1.5;
 }
 
-/* Title should also wrap if it is long */
-.notification-item-title {
-  display: block;
-  width: 100%;
-
-  color: #1a1a1a !important;
-
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  overflow-wrap: anywhere;
-
-  line-height: 1.4;
-}
-
 /* Time */
 .notification-item-time {
   display: block;
   width: 100%;
+
+  margin-top: 6px;
 
   color: #8a8a8a !important;
 
   white-space: normal !important;
 }
 
-/* Unread notification */
-.notification-item.is-unread {
-  background-color: var(--brand-purple-soft) !important;
-  border-left: 3px solid var(--brand-purple) !important;
-}
-
-/* Hover */
-.notification-item:hover {
-  background-color: #f5f2ff !important;
-}
-
-/* Header stays at the top */
-.notification-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  min-height: 52px;
-
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
-
-  border-bottom: 1px solid var(--border-primary) !important;
-}
-
-/* Empty state */
+/* Empty/loading message */
 .notification-empty {
   padding: var(--spacing-6);
   margin: 0;
@@ -3214,121 +3293,120 @@ h3 {
     right: 12px;
     width: auto;
   }
+
+  .notification-panel-body {
+    max-height: 340px !important;
+  }
 }
 /* ============================================================================
-   NOTIFICATION PANEL HEADER — BRAND STYLING
+   LEAVE DETAILS MODAL — FINAL ACTION BUTTON LAYOUT
+   Prevent Approve / Reject / Cancel / Close from being cut off
    ============================================================================ */
 
-.notification-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
+/* Footer */
+.leave-modal-footer,
+.leave-details-actions,
+.modal-actions,
+.leave-actions,
+.modal-footer {
+  width: 100% !important;
+  box-sizing: border-box !important;
 
-  /* Better spacing */
-  padding: var(--spacing-4) var(--spacing-5);
-  min-height: 60px;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 
-  /* App brand colors */
-  background-color: var(--brand-purple) !important;
-  color: var(--brand-peach) !important;
+  gap: 12px !important;
+  padding: 20px 24px !important;
 
-  border-bottom: 1px solid var(--brand-purple-hover) !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+
+  overflow: visible !important;
 }
 
-/* Notification heading */
-.notification-panel-header h3,
-.notification-panel-header h4,
-.notification-panel-header strong,
-.notification-panel-header span {
-  color: var(--brand-peach) !important;
-  margin: 0;
+/* Buttons */
+.leave-modal-footer button,
+.leave-details-actions button,
+.modal-actions button,
+.leave-actions button,
+.modal-footer button {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  box-sizing: border-box !important;
+  margin: 0 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+
+  flex: none !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-/* If heading uses a specific class */
-.notification-panel-header .notification-title {
-  color: var(--brand-peach) !important;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-lg);
-  line-height: 1.4;
+/* Make sure modal itself has proper sizing */
+.modal-dialog,
+.leave-modal,
+.leave-details-modal,
+.modal-content {
+  box-sizing: border-box !important;
+  width: min(900px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+
+  overflow-x: hidden !important;
 }
 
-/* Mark all button */
-.notification-panel-header .notification-mark-all {
-  color: var(--brand-peach) !important;
-  background: transparent !important;
-  border: none !important;
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-semibold);
+/* Prevent footer from becoming wider than modal */
+.leave-modal-footer *,
+.leave-details-actions *,
+.modal-actions *,
+.leave-actions *,
+.modal-footer * {
+  box-sizing: border-box !important;
 }
 
-.notification-panel-header .notification-mark-all:hover {
-  background-color: rgba(255, 187, 92, 0.15) !important;
-  color: var(--brand-peach) !important;
-}
-
-/* If there is a close button in the header */
-.notification-panel-header button {
-  color: var(--brand-peach) !important;
-  background: transparent !important;
-}
-
-.notification-panel-header button:hover {
-  background-color: rgba(255, 187, 92, 0.15) !important;
-  color: var(--brand-peach) !important;
-}
 
 /* ============================================================================
-   NOTIFICATION HEADER — FINAL SPACING POLISH
+   TABLET / SMALL DESKTOP
    ============================================================================ */
 
-.notification-panel-header {
-  padding: 16px 20px !important;
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-
-  background-color: var(--brand-purple) !important;
-  color: var(--brand-peach) !important;
-
-  border-bottom: 1px solid var(--brand-purple-hover) !important;
+@media (max-width: 700px) {
+  .leave-modal-footer,
+  .leave-details-actions,
+  .modal-actions,
+  .leave-actions,
+  .modal-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    padding: 16px !important;
+  }
 }
 
-/* Proper heading spacing and alignment */
-.notification-panel-header h3,
-.notification-panel-header h4,
-.notification-panel-header strong,
-.notification-panel-header .notification-title {
-  margin: 0 !important;
-  padding: 0 !important;
 
-  color: var(--brand-peach) !important;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.4;
+/* ============================================================================
+   MOBILE
+   ============================================================================ */
 
-  text-align: left;
-}
+@media (max-width: 450px) {
+  .leave-modal-footer,
+  .leave-details-actions,
+  .modal-actions,
+  .leave-actions,
+  .modal-footer {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 16px !important;
+  }
 
-/* Mark-all button gets comfortable spacing */
-.notification-panel-header .notification-mark-all {
-  margin: 0 !important;
-  padding: 7px 10px !important;
-
-  color: var(--brand-peach) !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: var(--radius-sm);
-
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-}
-
-.notification-panel-header .notification-mark-all:hover {
-  background-color: rgba(255, 187, 92, 0.15) !important;
-  color: var(--brand-peach) !important;
+  .leave-modal-footer button,
+  .leave-details-actions button,
+  .modal-actions button,
+  .leave-actions button,
+  .modal-footer button {
+    width: 100% !important;
+  }
 }
