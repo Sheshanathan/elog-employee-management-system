@@ -1003,7 +1003,7 @@ exports.adminCancelLeave = async (req, res) => {
 
 /*
  * =========================================================
- * DELETE LEAVE (ADMIN - EXCEPTIONAL CLEANUP ONLY)
+ * DELETE LEAVE (ADMIN)
  * =========================================================
  */
 
@@ -1025,26 +1025,28 @@ exports.deleteLeave = async (req, res) => {
             });
         }
 
+        // Only cancelled or rejected records can be permanently deleted
         if (!["Cancelled", "Rejected"].includes(leave.status)) {
             return res.status(400).json({
-                message: "Only cancelled or rejected leave records can be permanently removed for exceptional cleanup"
+                message:
+                    "Only cancelled or rejected leave records can be permanently deleted"
             });
         }
 
         await Leave.findByIdAndDelete(id);
 
         return res.status(200).json({
-            message: "Leave record permanently removed"
+            message: "Leave record permanently deleted"
         });
 
     } catch (error) {
         console.error("Delete Leave Error:", error);
+
         return res.status(500).json({
-            message: "Failed to delete leave request"
+            message: "Failed to delete leave record"
         });
     }
 };
-
 /*
  * =========================================================
  * GET MY LEAVE BALANCE
