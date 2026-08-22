@@ -40,6 +40,58 @@ router.get(
 );
 
 /**
+ * @swagger
+ * /users/my/profile:
+ *   get:
+ *     summary: Get logged-in user's profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Failed to retrieve profile
+ */
+router.get(
+    "/users/my/profile",
+    auth,
+    userController.getMyProfile
+);
+
+/**
+ * @swagger
+ * /users/my/profile:
+ *   patch:
+ *     summary: Update logged-in user's profile
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation failed
+ *       401:
+ *         description: Authentication required
+ *       409:
+ *         description: Email already exists
+ *       500:
+ *         description: Failed to update profile
+ */
+router.patch(
+    "/users/my/profile",
+    auth,
+    userController.updateMyProfile
+);
+
+/**
   * @swagger
   * /users/{id}:
   *   get:
@@ -91,14 +143,14 @@ router.get(
  *           schema:
  *             type: object
  *             required:
- *               - name
  *               - email
  *               - password
  *               - role
  *             properties:
  *               name:
  *                 type: string
- *                 example: John Doe
+ *                 description: Required for Admin accounts. Employee account names come from the linked Employee record.
+ *                 example: Jane Administrator
  *               email:
  *                 type: string
  *                 format: email
@@ -113,6 +165,10 @@ router.get(
  *                   - Employee
  *                   - Admin
  *                 example: Employee
+ *               employee:
+ *                 type: string
+ *                 description: Required when role is Employee. Display name comes from this record.
+ *                 example: 68b123456789abcdef123456
  *     responses:
  *       201:
  *         description: User created successfully
@@ -159,13 +215,13 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - name
  *               - email
  *               - role
  *             properties:
  *               name:
  *                 type: string
- *                 example: John Doe
+ *                 description: Required when the resulting role is Admin. Not used for Employee accounts.
+ *                 example: Jane Administrator
  *               email:
  *                 type: string
  *                 format: email
@@ -176,6 +232,10 @@ router.post(
  *                   - Employee
  *                   - Admin
  *                 example: Employee
+ *               employee:
+ *                 type: string
+ *                 description: Required when role is Employee
+ *                 example: 68b123456789abcdef123456
  *     responses:
  *       200:
  *         description: User updated successfully
@@ -237,67 +297,5 @@ router.delete(
     admin,
     userController.deleteUser
 );
-
-/*
- * =========================================================
- * MY PROFILE
- * =========================================================
- */
-
-/**
- * @swagger
- * /users/my/profile:
- *   get:
- *     summary: Get logged-in user's profile
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile retrieved successfully
- *       401:
- *         description: Authentication required
- *       404:
- *         description: User not found
- *       500:
- *         description: Failed to retrieve profile
- */
-router.get(
-    "/users/my/profile",
-    auth,
-    userController.getMyProfile
-);
-
-
-/**
- * @swagger
- * /users/my/profile:
- *   patch:
- *     summary: Update logged-in user's profile
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile updated successfully
- *       400:
- *         description: Validation failed
- *       401:
- *         description: Authentication required
- *       409:
- *         description: Email already exists
- *       500:
- *         description: Failed to update profile
- */
-router.patch(
-    "/users/my/profile",
-    auth,
-    userController.updateMyProfile
-);
-
-
-module.exports = router;
 
 module.exports = router;

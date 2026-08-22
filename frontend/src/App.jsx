@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import MyLeave from "./pages/MyLeave";
 import LeaveManagement from "./pages/LeaveManagement";
+import { AuthProvider } from "./context/AuthContext";
 
 const admin = (Page) => (
     <ProtectedRoute allowedRole="Admin">{Page}</ProtectedRoute>
@@ -32,6 +33,7 @@ const admin = (Page) => (
 function App() {
     return (
         <BrowserRouter>
+            <AuthProvider>
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
@@ -61,6 +63,7 @@ function App() {
                 <Route path="/leave-management" element={admin(<LeaveManagement />)} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
+            </AuthProvider>
         </BrowserRouter>
     );
 }

@@ -119,20 +119,20 @@ function validateUserData(req, res, next) {
 
     const errors = {};
 
-    if (!name) {
-        errors.name = "Name is required";
-    } else if (!validateName(name)) {
-        errors.name =
-            "Name should contain only letters and spaces and must contain at least 2 characters";
-    }
-
     if (!email) {
         errors.email = "Email is required";
     } else if (!validateEmail(email)) {
         errors.email = "Enter a valid email address";
     }
 
-    if (password !== undefined) {
+    if (req.method === "POST") {
+        if (!password) {
+            errors.password = "Password is required";
+        } else if (!validatePassword(password)) {
+            errors.password =
+                "Password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number";
+        }
+    } else if (password !== undefined && password !== "") {
         if (!validatePassword(password)) {
             errors.password =
                 "Password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number";
@@ -145,8 +145,23 @@ function validateUserData(req, res, next) {
         errors.role = "Role must be Admin or Employee";
     }
 
-    if (role === "Employee" && !employee) {
-        errors.employee = "Employee selection is required";
+    if (role === "Admin") {
+        if (!name || !String(name).trim()) {
+            errors.name = "Name is required for an Admin account";
+        } else if (!validateName(name)) {
+            errors.name =
+                "Name should contain only letters and spaces and must contain at least 2 characters";
+        } else if (String(name).trim().length > 50) {
+            errors.name = "Name cannot exceed 50 characters";
+        }
+    }
+
+    if (role === "Employee") {
+        if (!employee) {
+            errors.employee = "Employee selection is required";
+        } else if (!validateObjectId(String(employee))) {
+            errors.employee = "A valid employee must be selected";
+        }
     }
 
     if (Object.keys(errors).length > 0) {

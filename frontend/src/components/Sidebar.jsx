@@ -1,16 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import AppLogo from "./AppLogo";
+import { useAuth } from "../context/AuthContext";
 import '../styles/design-system.css';
 
 function Sidebar() {
-    const role = localStorage.getItem("role");
-    const name = localStorage.getItem("name");
+    const { displayName, role, logout } = useAuth();
+    const name = displayName;
     const navigate = useNavigate();
 
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("name");
+    const handleLogout = () => {
+        logout();
         navigate("/");
     };
 
@@ -66,7 +65,7 @@ function Sidebar() {
             </nav>
 
             <div className="sidebar-footer">
-                <button onClick={logout} className="btn btn-danger w-full">
+                <button onClick={handleLogout} className="btn btn-danger w-full">
                     Logout
                 </button>
             </div>

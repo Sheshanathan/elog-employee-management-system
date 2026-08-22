@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearSession } from "./utils/userDisplay";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL
@@ -33,9 +34,7 @@ api.interceptors.response.use(
          * Token missing, invalid or expired.
          */
         if (status === 401 && !isAuthRequest) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-            localStorage.removeItem("name");
+            clearSession();
 
             window.location.href = "/login?message=session-expired";
 
@@ -58,9 +57,7 @@ api.interceptors.response.use(
                 lowerMessage.includes("employee profile is inactive");
 
             if (isDisabledAccount || isInactiveEmployee) {
-                localStorage.removeItem("token");
-                localStorage.removeItem("role");
-                localStorage.removeItem("name");
+                clearSession();
 
                 /*
                  * Store the exact backend message so Login.jsx

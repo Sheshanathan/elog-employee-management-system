@@ -1360,9 +1360,27 @@ async function getMyProfile(req, res) {
 }
 async function updateMyProfile(req, res){
     try {
-        const employee = await Employee.findOne({
-            user: req.user.id
-        });
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User Not Found"
+            });
+        }
+
+        if (user.role !== "Employee") {
+            return res.status(403).json({
+                message: "Employee access required"
+            });
+        }
+
+        if (!user.employee) {
+            return res.status(404).json({
+                message: "Employee profile not found"
+            });
+        }
+
+        const employee = await Employee.findById(user.employee);
 
         if (!employee) {
             return res.status(404).json({
@@ -1391,6 +1409,25 @@ async function updateMyProfile(req, res){
         });
     } catch (error) {
         console.error("Update My Profile Error:", error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Email already exists"
+            });
+        }
+
+        if (error.name === "ValidationError") {
+            const errors = {};
+
+            Object.keys(error.errors).forEach((field) => {
+                errors[field] = error.errors[field].message;
+            });
+
+            return res.status(400).json({
+                message: "Validation failed",
+                errors
+            });
+        }
 
         res.status(500).json({
             message: "Failed to update profile"

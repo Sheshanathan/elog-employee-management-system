@@ -14,6 +14,7 @@ import {
 import { matchesSearch } from "../utils/search";
 import '../styles/design-system.css';
 import { downloadCSV } from "../utils/csv";
+import { getUserDisplayName } from "../utils/userDisplay";
 function Users() {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
@@ -42,7 +43,7 @@ function Users() {
     };
     const handleExport = () => {
     downloadCSV("users", filteredUsers, [
-        { key: "name", label: "Name" },
+        { label: "Name", format: getUserDisplayName },
         { key: "email", label: "Email" },
         { key: "role", label: "Role" },
         { label: "Status", format: (u) => (u.isActive ? "Active" : "Inactive") },
@@ -73,8 +74,13 @@ function Users() {
     };
 
     const filteredUsers = (users || []).filter((user) =>
-        matchesSearch(search, user.name, user.email, user.role)
-    );
+    matchesSearch(
+        search,
+        getUserDisplayName(user),
+        user.email,
+        user.role
+    )
+);
 
     const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
     const safePage = Math.min(currentPage, totalPages);
@@ -148,9 +154,12 @@ function Users() {
                             <tbody>
                                 {currentUsers.map((user) => (
                                     <tr key={user._id}>
-                                        <td className="col-name cell-ellipsis cell-text" title={user.name}>
-                                            <strong>{user.name}</strong>
-                                        </td>
+                                       <td
+    className="col-name cell-ellipsis cell-text"
+    title={getUserDisplayName(user) || "—"}
+>
+    <strong>{getUserDisplayName(user) || "—"}</strong>
+</td>
                                         <td className="col-email cell-ellipsis cell-text" title={user.email}>
                                             {user.email}
                                         </td>
@@ -162,7 +171,7 @@ function Users() {
                                         </td>
                                         <td className="col-actions cell-actions">
                                             <RowActionsMenu
-                                                ariaLabel={`Actions for ${user.name}`}
+                                                ariaLabel={`Actions for ${getUserDisplayName(user) || user.email}`}
                                                 items={[
                                                     {
                                                         key: 'edit',
@@ -173,7 +182,11 @@ function Users() {
                                                         key: 'delete',
                                                         label: 'Delete',
                                                         danger: true,
-                                                        onClick: () => handleDeleteClick(user._id, user.name),
+                                                        onClick: () =>
+    handleDeleteClick(
+        user._id,
+        getUserDisplayName(user) || user.email
+    ),
                                                     },
                                                 ]}
                                             />

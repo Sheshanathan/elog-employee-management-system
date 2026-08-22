@@ -4,6 +4,12 @@ const mongoose = require("mongoose");
 const Employee = require("../models/Employee");
 const { EMPLOYEE_NESTED_POPULATE } = require("../utils/employeeHelpers");
 
+
+/*
+ * =========================================================
+ * GET ALL USERS
+ * =========================================================
+ */
 exports.getUsers = async (req, res) => {
     try {
         const users = await User.find()
@@ -22,6 +28,11 @@ exports.getUsers = async (req, res) => {
 };
 
 
+/*
+ * =========================================================
+ * GET USER BY ID
+ * =========================================================
+ */
 exports.getUserById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -54,6 +65,14 @@ exports.getUserById = async (req, res) => {
 };
 
 
+/*
+ * =========================================================
+ * CREATE USER
+ * =========================================================
+ *
+ * Employee name is NOT stored in User.
+ * Employee record is selected and linked instead.
+ */
 exports.createUser = async (req, res) => {
     try {
         const {
@@ -64,8 +83,8 @@ exports.createUser = async (req, res) => {
             employee
         } = req.body;
 
-        const normalizedEmail =
-            email?.trim().toLowerCase();
+        const normalizedEmail = email?.trim().toLowerCase();
+        const normalizedName = typeof name === "string" ? name.trim() : "";
 
         const existingUser = await User.findOne({
             email: normalizedEmail
@@ -78,7 +97,8 @@ exports.createUser = async (req, res) => {
         }
 
         /*
-         * Employee role requires an employee
+         * Employee accounts must be linked
+         * to an Employee record.
          */
         if (role === "Employee") {
 
@@ -121,7 +141,7 @@ exports.createUser = async (req, res) => {
             await bcrypt.hash(password, 10);
 
         const user = new User({
-            name,
+            name: role === "Admin" ? normalizedName : undefined,
             email: normalizedEmail,
             password: hashedPassword,
             role,
@@ -133,30 +153,30 @@ exports.createUser = async (req, res) => {
 
         await user.save();
 
+        await user.populate(EMPLOYEE_NESTED_POPULATE);
+
         res.status(201).json({
-            message: "User Created Successfully"
+            message: "User Created Successfully",
+            user
         });
 
     } catch (error) {
-
         console.error("Create User Error:", error);
 
         if (error.code === 11000) {
             return res.status(409).json({
-                message: "Email already exists"
+                message:
+                    "Email or employee already exists"
             });
         }
 
         if (error.name === "ValidationError") {
-
             const errors = {};
 
-            Object.keys(error.errors).forEach(
-                (field) => {
-                    errors[field] =
-                        error.errors[field].message;
-                }
-            );
+            Object.keys(error.errors).forEach((field) => {
+                errors[field] =
+                    error.errors[field].message;
+            });
 
             return res.status(400).json({
                 message: "Validation failed",
@@ -171,6 +191,18 @@ exports.createUser = async (req, res) => {
 };
 
 
+/*
+ * =========================================================
+ * UPDATE USER
+ * =========================================================
+ *
+ * User editing is only for:
+ * - Email
+ * - Role
+ * - Employee link
+ *
+ * Employee name is edited from Employee management.
+ */
 exports.updateUser = async (req, res) => {
     try {
         const {
@@ -182,14 +214,12 @@ exports.updateUser = async (req, res) => {
 
         const { id } = req.params;
 
-        // Validate User ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 message: "Invalid User ID"
             });
         }
 
-        // Find the existing user first
         const existingUser = await User.findById(id);
 
         if (!existingUser) {
@@ -198,9 +228,12 @@ exports.updateUser = async (req, res) => {
             });
         }
 
-        // Check duplicate email
+        const normalizedEmail =
+            email?.trim().toLowerCase();
+        const normalizedName = typeof name === "string" ? name.trim() : "";
+
         const emailExists = await User.findOne({
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             _id: {
                 $ne: id
             }
@@ -212,20 +245,15 @@ exports.updateUser = async (req, res) => {
             });
         }
 
-        /*
-         * Employee role
-         *
-         * If frontend sends a new employee,
-         * validate it.
-         *
-         * If frontend does not send employee,
-         * preserve the existing employee.
-         */
         let employeeId = null;
 
+        /*
+         * Employee role requires an Employee link.
+         */
         if (role === "Employee") {
 
-            employeeId = employee || existingUser.employee;
+            employeeId =
+                employee || existingUser.employee;
 
             if (!employeeId) {
                 return res.status(400).json({
@@ -249,7 +277,6 @@ exports.updateUser = async (req, res) => {
                 });
             }
 
-            // Check whether another user already uses this employee
             const existingEmployeeUser =
                 await User.findOne({
                     employee: employeeId,
@@ -267,33 +294,43 @@ exports.updateUser = async (req, res) => {
         }
 
         /*
-         * Admin users do not need an employee.
+         * Admin does not need Employee link.
          */
         if (role === "Admin") {
+            if (!normalizedName) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: { name: "Name is required for an Admin account" }
+                });
+            }
             employeeId = null;
         }
 
-        // Update user
+        const userUpdate = {
+            email: normalizedEmail,
+            role,
+            employee: employeeId
+        };
+
+        if (role === "Admin") {
+            userUpdate.name = normalizedName;
+        } else {
+            // Remove legacy duplicated names when an account is (or becomes)
+            // employee-linked. Employee.name is the sole source of truth.
+            userUpdate.$unset = { name: 1 };
+        }
+
         const updatedUser =
             await User.findByIdAndUpdate(
                 id,
-                {
-                    name,
-                    email: email.toLowerCase(),
-                    role,
-                    employee: employeeId
-                },
+                userUpdate,
                 {
                     new: true,
                     runValidators: true
                 }
-            ).select("-password");
-
-        if (!updatedUser) {
-            return res.status(404).json({
-                message: "User Not Found"
-            });
-        }
+            )
+                .select("-password")
+                .populate(EMPLOYEE_NESTED_POPULATE);
 
         res.status(200).json({
             message: "User Updated Successfully",
@@ -305,7 +342,8 @@ exports.updateUser = async (req, res) => {
 
         if (error.code === 11000) {
             return res.status(409).json({
-                message: "Email or employee already exists"
+                message:
+                    "Email or employee already exists"
             });
         }
 
@@ -316,11 +354,6 @@ exports.updateUser = async (req, res) => {
                 errors[field] =
                     error.errors[field].message;
             });
-
-            console.error(
-                "Validation Errors:",
-                errors
-            );
 
             return res.status(400).json({
                 message: "Validation failed",
@@ -334,9 +367,14 @@ exports.updateUser = async (req, res) => {
     }
 };
 
+
+/*
+ * =========================================================
+ * DELETE USER
+ * =========================================================
+ */
 exports.deleteUser = async (req, res) => {
     try {
-
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
                 message: "Invalid User ID"
@@ -344,9 +382,7 @@ exports.deleteUser = async (req, res) => {
         }
 
         const user =
-            await User.findByIdAndDelete(
-                req.params.id
-            );
+            await User.findByIdAndDelete(req.params.id);
 
         if (!user) {
             return res.status(404).json({
@@ -359,7 +395,6 @@ exports.deleteUser = async (req, res) => {
         });
 
     } catch (error) {
-
         console.error("Delete User Error:", error);
 
         res.status(500).json({
@@ -368,10 +403,14 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
+
 /*
  * =========================================================
  * GET MY PROFILE
  * =========================================================
+ *
+ * IMPORTANT:
+ * Employee name comes from Employee record.
  */
 exports.getMyProfile = async (req, res) => {
     try {
@@ -411,18 +450,15 @@ exports.getMyProfile = async (req, res) => {
 /*
  * =========================================================
  * UPDATE MY PROFILE
- *
- * Allows logged-in Admin/Employee to update:
- * - Name
- * - Email
- * - Phone
- *
- * Does NOT allow:
- * - Password
- * - Role
- * - Employee assignment
- * - Account status
  * =========================================================
+ *
+ * Employee:
+ * - name comes from Employee record
+ * - email belongs to User
+ * - phone belongs to User
+ *
+ * Admin:
+ * - name, email and phone belong to User
  */
 exports.updateMyProfile = async (req, res) => {
     try {
@@ -440,10 +476,8 @@ exports.updateMyProfile = async (req, res) => {
             phone
         } = req.body;
 
-        /*
-         * Find current user
-         */
-        const existingUser = await User.findById(userId);
+        const existingUser =
+            await User.findById(userId);
 
         if (!existingUser) {
             return res.status(404).json({
@@ -453,57 +487,7 @@ exports.updateMyProfile = async (req, res) => {
 
         /*
          * -------------------------------------------------
-         * NAME VALIDATION
-         * -------------------------------------------------
-         */
-        if (!name || !name.trim()) {
-            return res.status(400).json({
-                message: "Name is required",
-                errors: {
-                    name: "Name is required"
-                }
-            });
-        }
-
-        const normalizedName = name.trim();
-
-        if (normalizedName.length < 2) {
-            return res.status(400).json({
-                message: "Validation failed",
-                errors: {
-                    name:
-                        "Name must contain at least 2 characters"
-                }
-            });
-        }
-
-        if (normalizedName.length > 50) {
-            return res.status(400).json({
-                message: "Validation failed",
-                errors: {
-                    name:
-                        "Name cannot exceed 50 characters"
-                }
-            });
-        }
-
-        if (
-            !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(
-                normalizedName
-            )
-        ) {
-            return res.status(400).json({
-                message: "Validation failed",
-                errors: {
-                    name:
-                        "Name should contain only letters and spaces"
-                }
-            });
-        }
-
-        /*
-         * -------------------------------------------------
-         * EMAIL VALIDATION
+         * EMAIL
          * -------------------------------------------------
          */
         if (!email || !email.trim()) {
@@ -534,12 +518,10 @@ exports.updateMyProfile = async (req, res) => {
 
         /*
          * -------------------------------------------------
-         * PHONE VALIDATION
+         * PHONE
          * -------------------------------------------------
-         *
-         * Phone is optional.
          */
-        let normalizedPhone;
+        let normalizedPhone = "";
 
         if (
             phone !== undefined &&
@@ -561,13 +543,11 @@ exports.updateMyProfile = async (req, res) => {
                     }
                 });
             }
-        } else {
-            normalizedPhone = "";
         }
 
         /*
          * -------------------------------------------------
-         * DUPLICATE EMAIL CHECK
+         * DUPLICATE EMAIL
          * -------------------------------------------------
          */
         const emailExists = await User.findOne({
@@ -588,15 +568,119 @@ exports.updateMyProfile = async (req, res) => {
         }
 
         /*
+         * Employee names are stored only in Employee. Admin names are stored
+         * only in User, so neither account type has a second mutable name.
+         */
+        if (existingUser.role === "Employee") {
+
+            if (!existingUser.employee) {
+                return res.status(400).json({
+                    message:
+                        "Your account is not linked to an employee"
+                });
+            }
+
+            if (!name || !name.trim()) {
+                return res.status(400).json({
+                    message: "Name is required",
+                    errors: {
+                        name: "Name is required"
+                    }
+                });
+            }
+
+            const normalizedName =
+                name.trim();
+
+            if (normalizedName.length < 2) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: {
+                        name:
+                            "Name must contain at least 2 characters"
+                    }
+                });
+            }
+
+            if (normalizedName.length > 50) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: {
+                        name:
+                            "Name cannot exceed 50 characters"
+                    }
+                });
+            }
+
+            if (
+                !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(
+                    normalizedName
+                )
+            ) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: {
+                        name:
+                            "Name should contain only letters and spaces"
+                    }
+                });
+            }
+
+            const updatedEmployee = await Employee.findByIdAndUpdate(
+                existingUser.employee,
+                {
+                    name: normalizedName
+                },
+                {
+                    new: true,
+                    runValidators: true
+                }
+            );
+
+            if (!updatedEmployee) {
+                return res.status(404).json({
+                    message: "Employee profile not found"
+                });
+            }
+        } else {
+            if (!name || !name.trim()) {
+                return res.status(400).json({
+                    message: "Name is required",
+                    errors: { name: "Name is required" }
+                });
+            }
+
+            const normalizedName = name.trim();
+
+            if (normalizedName.length < 2 || normalizedName.length > 50) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: { name: "Name must contain between 2 and 50 characters" }
+                });
+            }
+
+            if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(normalizedName)) {
+                return res.status(400).json({
+                    message: "Validation failed",
+                    errors: { name: "Name should contain only letters and spaces" }
+                });
+            }
+
+            existingUser.name = normalizedName;
+        }
+
+        /*
          * -------------------------------------------------
-         * UPDATE ONLY PROFILE FIELDS
+         * UPDATE USER ACCOUNT FIELDS
          * -------------------------------------------------
          */
         const updatedUser =
             await User.findByIdAndUpdate(
                 userId,
                 {
-                    name: normalizedName,
+                    ...(existingUser.role === "Admin" && {
+                        name: existingUser.name
+                    }),
                     email: normalizedEmail,
                     phone: normalizedPhone
                 },
@@ -610,17 +694,6 @@ exports.updateMyProfile = async (req, res) => {
                     EMPLOYEE_NESTED_POPULATE
                 );
 
-        if (!updatedUser) {
-            return res.status(404).json({
-                message: "User Not Found"
-            });
-        }
-
-        /*
-         * -------------------------------------------------
-         * RESPONSE
-         * -------------------------------------------------
-         */
         res.status(200).json({
             message:
                 "Profile updated successfully",
@@ -633,23 +706,13 @@ exports.updateMyProfile = async (req, res) => {
             error
         );
 
-        /*
-         * Duplicate key
-         */
         if (error.code === 11000) {
             return res.status(409).json({
                 message:
-                    "Email already exists",
-                errors: {
-                    email:
-                        "Email already exists"
-                }
+                    "Email already exists"
             });
         }
 
-        /*
-         * Mongoose validation
-         */
         if (error.name === "ValidationError") {
             const errors = {};
 

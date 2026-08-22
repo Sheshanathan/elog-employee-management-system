@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import AppLogo from "./AppLogo";
 import NotificationBell from "./NotificationBell";
 import { ConfirmationModal } from "./FormField";
+import { useAuth } from "../context/AuthContext";
 import "../styles/design-system.css";
 
 /**
@@ -12,17 +13,15 @@ import "../styles/design-system.css";
  * user menu (Profile / Logout) with a proper confirmation modal.
  */
 function Navbar() {
-    const role = localStorage.getItem("role");
-    const name = localStorage.getItem("name");
+    const { displayName, role, logout } = useAuth();
+    const name = displayName;
     const navigate = useNavigate();
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [logoutConfirm, setLogoutConfirm] = useState(false);
 
     const doLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("name");
+        logout();
         setLogoutConfirm(false);
         navigate("/");
     };

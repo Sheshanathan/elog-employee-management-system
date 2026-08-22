@@ -2,25 +2,6 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
     {
-        name: {
-            type: String,
-            required: [true, "Name is required"],
-            trim: true,
-            minlength: [
-                2,
-                "Name must contain at least 2 characters"
-            ],
-            validate: {
-                validator: function (value) {
-                    return /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(
-                        value.trim()
-                    );
-                },
-                message:
-                    "Name should contain only letters and spaces"
-            }
-        },
-
         email: {
             type: String,
             required: [true, "Email is required"],
@@ -37,9 +18,6 @@ const userSchema = new mongoose.Schema(
             }
         },
 
-        /*
-         * Phone Number
-         */
         phone: {
             type: String,
             trim: true,
@@ -52,6 +30,22 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, "Password is required"]
+        },
+
+        // Administrators are not employee records, so their name belongs to
+        // their account. Employee account names are always resolved from the
+        // linked Employee document instead.
+        name: {
+            type: String,
+            trim: true,
+            minlength: [2, "Name must contain at least 2 characters"],
+            maxlength: [50, "Name cannot exceed 50 characters"],
+            validate: {
+                validator: function (value) {
+                    return !value || /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(value);
+                },
+                message: "Name should contain only letters and spaces"
+            }
         },
 
         role: {
@@ -67,26 +61,56 @@ const userSchema = new mongoose.Schema(
         },
 
         isActive: {
-    type: Boolean,
-    default: true
-},
+            type: Boolean,
+            default: true
+        },
 
-passwordResetToken: {
-    type: String,
-    default: null
-},
+        passwordResetToken: {
+            type: String,
+            default: null
+        },
 
-passwordResetExpires: {
-    type: Date,
-    default: null
-}
+        passwordResetExpires: {
+            type: Date,
+            default: null
+        }
     },
     {
         timestamps: true
     }
 );
 
-// Prevent one employee from having multiple user accounts.
+function attachDisplayName(_doc, ret) {
+    delete ret.password;
+    delete ret.passwordResetToken;
+    delete ret.passwordResetExpires;
+
+    const employeeName =
+        ret.employee &&
+        typeof ret.employee === "object" &&
+        ret.employee.name
+            ? ret.employee.name
+            : null;
+
+    // `name` remains the account name for admins. `displayName` gives every
+    // API consumer one safe rendering field without duplicating employee data.
+    ret.displayName =
+        ret.role === "Employee"
+            ? employeeName
+            : ret.name || null;
+
+    return ret;
+}
+
+userSchema.set("toJSON", {
+    transform: attachDisplayName
+});
+
+userSchema.set("toObject", {
+    transform: attachDisplayName
+});
+
+// One employee can have only one login account.
 userSchema.index(
     { employee: 1 },
     {

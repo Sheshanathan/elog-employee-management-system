@@ -9,7 +9,16 @@ const EMPLOYEE_NESTED_POPULATE = {
     populate: EMPLOYEE_POPULATES
 };
 
+const USER_ACCOUNT_POPULATE = {
+    select: "name email role employee",
+    populate: {
+        path: "employee",
+        select: "name employeeId"
+    }
+};
+
 module.exports = {
     EMPLOYEE_POPULATES,
-    EMPLOYEE_NESTED_POPULATE
+    EMPLOYEE_NESTED_POPULATE,
+    USER_ACCOUNT_POPULATE
 };

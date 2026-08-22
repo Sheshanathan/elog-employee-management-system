@@ -255,10 +255,27 @@ function EmployeeDashboard() {
     <Layout>
       <div className="page-header">
         <div className="page-title-section">
-          <h1>Welcome, {profile?.name || "Employee"}</h1>
-          <p>
-            {profile?.employeeId} • {getDepartmentName(profile?.department)} • {getDesignationName(profile?.designation)}
-          </p>
+          <h1>
+    Welcome,{" "}
+    {profile?.employee?.name ||
+        profile?.name ||
+        "Employee"}
+</h1>
+
+<p>
+    {profile?.employee?.employeeId ||
+        profile?.employeeId}{" "}
+    •{" "}
+    {getDepartmentName(
+        profile?.employee?.department ||
+        profile?.department
+    )}{" "}
+    •{" "}
+    {getDesignationName(
+        profile?.employee?.designation ||
+        profile?.designation
+    )}
+</p>
         </div>
       </div>
 

@@ -75,8 +75,17 @@ async function login(req, res) {
         }
 
 
+        await user.populate("employee", "name employeeId status");
+
+        const displayName =
+            user.employee && user.employee.name
+                ? user.employee.name
+                : user.name;
+
         // ==========================================
         // CREATE JWT TOKEN
+        // JWT stores only identity (id, role).
+        // Display names are not in the token; the database remains current.
         // ==========================================
         const token = jwt.sign(
             {
@@ -94,7 +103,15 @@ async function login(req, res) {
             message: "Login Successful",
             token,
             role: user.role,
-            name: user.name
+            name: displayName,
+            email: user.email,
+            employee: user.employee
+                ? {
+                    _id: user.employee._id,
+                    name: user.employee.name,
+                    employeeId: user.employee.employeeId
+                }
+                : null
         });
 
     } catch (error) {
@@ -140,6 +157,13 @@ async function forgotPassword(req, res) {
         );
 
         await user.save();
+
+        await user.populate("employee", "name");
+
+        const greetingName =
+            user.employee && user.employee.name
+                ? user.employee.name
+                : user.name || "there";
 
 
         const resetLink =
@@ -218,7 +242,7 @@ async function forgotPassword(req, res) {
                                     font-size:15px;
                                     line-height:1.6;
                                 ">
-                                    Hello ${user.name || "there"},
+                                    Hello ${greetingName},
                                 </p>
 
 

@@ -661,13 +661,13 @@ async function handleDeleteConfirm() {
                                 <p><strong>Admin Remark:</strong> {selectedLeave.adminRemark}</p>
                             )}
                             {selectedLeave.approvedBy && (
-                                <p><strong>Reviewed By:</strong> {selectedLeave.approvedBy.name}</p>
+                                <p><strong>Reviewed By:</strong> {selectedLeave.approvedBy.name || selectedLeave.approvedBy.email || "—"}</p>
                             )}
                             {selectedLeave.approvedAt && (
                                 <p><strong>Reviewed At:</strong> {formatDate(selectedLeave.approvedAt)}</p>
                             )}
                             {selectedLeave.cancelledBy && (
-                                <p><strong>Cancelled By:</strong> {selectedLeave.cancelledBy.name}</p>
+                                <p><strong>Cancelled By:</strong> {selectedLeave.cancelledBy.name || selectedLeave.cancelledBy.email || "—"}</p>
                             )}
                             {selectedLeave.cancelledAt && (
                                 <p><strong>Cancelled At:</strong> {formatDate(selectedLeave.cancelledAt)}</p>
@@ -676,7 +676,7 @@ async function handleDeleteConfirm() {
                                 <p><strong>Last Updated:</strong> {formatDate(selectedLeave.updatedAt)}</p>
                             )}
                         </div>
-                        <div className="modal-footer">
+                       <div className="modal-footer leave-details-footer">
                             {selectedLeave.status === "Pending" && (
                                 <>
                                     <button

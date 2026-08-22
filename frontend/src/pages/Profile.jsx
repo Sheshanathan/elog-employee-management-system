@@ -7,6 +7,8 @@ import { FormField, LoadingSpinner } from "../components/FormField";
 import { getDepartmentName } from "../utils/department";
 import { getDesignationName } from "../utils/designation";
 import { getDashboardPath } from "../utils/auth";
+import { getUserDisplayName } from "../utils/userDisplay";
+import { useAuth } from "../context/AuthContext";
 import "../styles/design-system.css";
 
 const EMAIL_PATTERN =
@@ -20,7 +22,7 @@ const NAME_PATTERN =
 
 function Profile() {
     const navigate = useNavigate();
-
+    const { applyUser } = useAuth();
     const role = localStorage.getItem("role");
 
     const [user, setUser] = useState(null);
@@ -66,27 +68,29 @@ function Profile() {
 
                 setUser(profile);
 
-                /*
-                 * Employee information is populated
-                 * when the logged-in user has an employee.
-                 */
-                if (
+                const linkedEmployee =
                     profile.role === "Employee" &&
-                    profile.employee
-                ) {
-                    setEmployee(
-                        profile.employee
-                    );
+                    profile.employee &&
+                    typeof profile.employee === "object"
+                        ? profile.employee
+                        : null;
+
+                if (linkedEmployee) {
+                    setEmployee(linkedEmployee);
                 }
 
                 setForm({
                     name:
-                        profile.name || "",
+                        linkedEmployee?.name ||
+                        getUserDisplayName(profile) ||
+                        "",
                     email:
                         profile.email || "",
                     phone:
                         profile.phone || ""
                 });
+
+                applyUser(profile);
 
             } catch (error) {
                 if (!mounted) {
@@ -110,7 +114,7 @@ function Profile() {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [applyUser]);
 
     /*
      * =====================================================
@@ -239,7 +243,9 @@ function Profile() {
 
         setForm({
             name:
-                user?.name || "",
+                employee?.name ||
+                getUserDisplayName(user) ||
+                "",
             email:
                 user?.email || "",
             phone:
@@ -255,11 +261,7 @@ function Profile() {
      * =====================================================
      */
     const handleSave = async () => {
-        const nameError =
-            validateField(
-                "name",
-                form.name
-            );
+        const nameError = validateField("name", form.name);
 
         const emailError =
             validateField(
@@ -292,8 +294,7 @@ function Profile() {
                 await api.patch(
                     "/users/my/profile",
                     {
-                        name:
-                            form.name.trim(),
+                        name: form.name.trim(),
 
                         email:
                             form.email
@@ -309,15 +310,7 @@ function Profile() {
                 response.data.user;
 
             setUser(updatedUser);
-
-            /*
-             * Keep localStorage account name
-             * synchronized with the updated profile.
-             */
-            localStorage.setItem(
-                "name",
-                updatedUser.name
-            );
+            applyUser(updatedUser);
 
             /*
              * Update local employee reference
@@ -335,7 +328,8 @@ function Profile() {
 
             setForm({
                 name:
-                    updatedUser.name ||
+                    updatedUser.employee?.name ||
+                    getUserDisplayName(updatedUser) ||
                     "",
                 email:
                     updatedUser.email ||
@@ -552,7 +546,7 @@ function Profile() {
                                 </span>
 
                                 <strong>
-                                    {user?.name ||
+                                    {getUserDisplayName(user) ||
                                         "—"}
                                 </strong>
                             </div>

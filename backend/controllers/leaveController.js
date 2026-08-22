@@ -10,6 +10,7 @@ const {
     notifyLeaveWithdrawn,
     notifyLeaveCancelledByAdmin
 } = require("../utils/leaveNotifications");
+const { USER_ACCOUNT_POPULATE } = require("../utils/employeeHelpers");
 
 /*
  * =========================================================
@@ -300,8 +301,8 @@ exports.getLeaves = async (req, res) => {
 
         const leaves = await Leave.find(filter)
             .populate("employee", "employeeId name email department designation")
-            .populate("approvedBy", "name email role")
-            .populate("cancelledBy", "name email role")
+            .populate({ path: "approvedBy", ...USER_ACCOUNT_POPULATE })
+            .populate({ path: "cancelledBy", ...USER_ACCOUNT_POPULATE })
             .sort({ createdAt: -1 });
 
         return res.status(200).json(leaves);
@@ -342,8 +343,8 @@ exports.getMyLeaves = async (req, res) => {
         }
 
         const leaves = await Leave.find(filter)
-            .populate("approvedBy", "name email role")
-            .populate("cancelledBy", "name email role")
+            .populate({ path: "approvedBy", ...USER_ACCOUNT_POPULATE })
+            .populate({ path: "cancelledBy", ...USER_ACCOUNT_POPULATE })
             .sort({ createdAt: -1 });
 
         return res.status(200).json(leaves);
@@ -374,8 +375,8 @@ exports.getLeaveById = async (req, res) => {
 
         const leave = await Leave.findById(id)
             .populate("employee", "employeeId name email department designation")
-            .populate("approvedBy", "name email role")
-            .populate("cancelledBy", "name email role");
+            .populate({ path: "approvedBy", ...USER_ACCOUNT_POPULATE })
+            .populate({ path: "cancelledBy", ...USER_ACCOUNT_POPULATE });
 
         if (!leave) {
             return res.status(404).json({
@@ -905,7 +906,7 @@ exports.approveLeave = async (req, res) => {
             },
             {
                 path: "approvedBy",
-                select: "name email role"
+                ...USER_ACCOUNT_POPULATE
             }
         ]);
 
@@ -1108,7 +1109,7 @@ exports.adminCancelLeave = async (req, res) => {
 );
         await leave.populate([
             { path: "employee", select: "employeeId name email" },
-            { path: "cancelledBy", select: "name email role" }
+            { path: "cancelledBy", ...USER_ACCOUNT_POPULATE }
         ]);
 
         await notifyLeaveCancelledByAdmin(leave, adminRemark).catch((error) => {

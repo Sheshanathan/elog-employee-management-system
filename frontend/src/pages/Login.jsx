@@ -5,6 +5,8 @@ import { toast } from "react-toastify";
 import AppLogo from "../components/AppLogo";
 import { PasswordField } from "../components/FormField";
 import { getDashboardPath } from "../utils/auth";
+import { getUserDisplayName } from "../utils/userDisplay";
+import { useAuth } from "../context/AuthContext";
 import "../styles/design-system.css";
 
 const EMAIL_PATTERN =
@@ -23,6 +25,7 @@ function Login() {
     const [submitting, setSubmitting] = useState(false);
 
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     /*
      * Show message when user was redirected to login
@@ -121,24 +124,15 @@ function Login() {
                 password
             });
 
-            /*
-             * Save login information only after
-             * successful authentication.
-             */
-            localStorage.setItem(
-                "token",
-                response.data.token
-            );
-
-            localStorage.setItem(
-                "role",
-                response.data.role
-            );
-
-            localStorage.setItem(
-                "name",
-                response.data.name
-            );
+            login({
+                token: response.data.token,
+                role: response.data.role,
+                name:
+                    response.data.name ||
+                    getUserDisplayName(response.data) ||
+                    response.data.email ||
+                    ""
+            });
 
             toast.success("Login Successful");
 

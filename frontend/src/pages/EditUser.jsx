@@ -2,138 +2,128 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../components/Layout";
+import { FormField } from "../components/FormField";
 import { toast } from "react-toastify";
- 
+import "../styles/design-system.css";
+
 function EditUser() {
     const { id } = useParams();
     const navigate = useNavigate();
- 
-    const [name, setName] = useState("");
+
     const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
     const [role, setRole] = useState("");
     const [employee, setEmployee] = useState("");
     const [employees, setEmployees] = useState([]);
+
+    const [linkedEmployeeName, setLinkedEmployeeName] =
+        useState("");
+
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
-    const [employeesLoading, setEmployeesLoading] = useState(false);
- 
+    const [employeesLoading, setEmployeesLoading] =
+        useState(false);
+
     useEffect(() => {
         let isMounted = true;
- 
+
         async function fetchUser() {
             try {
                 setLoading(true);
- 
-                const response = await api.get(
-                    `${import.meta.env.VITE_API_URL}/users/${id}`
-                );
- 
-                if (!isMounted) {
-                    return;
-                }
- 
+
+                const response =
+                    await api.get(`/users/${id}`);
+
+                if (!isMounted) return;
+
                 const user = response.data;
- 
-                setName(user.name || "");
+
                 setEmail(user.email || "");
+                setName(user.name || "");
                 setRole(user.role || "");
-                setEmployee(
+
+                const employeeId =
                     typeof user.employee === "string"
                         ? user.employee
-                        : user.employee?._id || ""
+                        : user.employee?._id || "";
+
+                setEmployee(employeeId);
+
+                setLinkedEmployeeName(
+                    user.employee?.name || ""
                 );
- 
+
             } catch (error) {
-                if (!isMounted) {
-                    return;
-                }
- 
-                console.log(error);
- 
-                if (error.response?.status === 400) {
-                    toast.error("Invalid User ID");
-                } else if (error.response?.status === 404) {
-                    toast.error("User Not Found");
-                } else {
-                    toast.error("Failed to load user");
-                }
- 
+                if (!isMounted) return;
+
+                toast.error(
+                    error.response?.data?.message ||
+                    "Failed to load user"
+                );
+
                 navigate("/users");
- 
+
             } finally {
                 if (isMounted) {
                     setLoading(false);
                 }
             }
         }
- 
+
         fetchUser();
- 
+
         return () => {
             isMounted = false;
         };
     }, [id, navigate]);
- 
-    // Load employee list whenever the role is (or becomes) Employee,
-    // so the current link can be shown and changed.
+
     useEffect(() => {
         let isMounted = true;
- 
+
         async function fetchEmployees() {
             if (role !== "Employee") {
                 return;
             }
- 
+
             setEmployeesLoading(true);
- 
+
             try {
-                const response = await api.get("/employees");
- 
-                if (!isMounted) {
-                    return;
-                }
- 
+                const response =
+                    await api.get("/employees");
+
+                if (!isMounted) return;
+
                 setEmployees(
                     Array.isArray(response.data)
                         ? response.data
                         : response.data.employees || []
                 );
+
             } catch (error) {
-                if (!isMounted) {
-                    return;
-                }
- 
+                if (!isMounted) return;
+
                 toast.error(
                     error.response?.data?.message ||
                     "Failed to load employees"
                 );
+
             } finally {
                 if (isMounted) {
                     setEmployeesLoading(false);
                 }
             }
         }
- 
+
         fetchEmployees();
- 
+
         return () => {
             isMounted = false;
         };
     }, [role]);
- 
-    function validateField(field, value) {
+
+    const validateField = (field, value) => {
         let error = "";
- 
-        if (field === "name") {
-            if (!value.trim()) {
-                error = "Name is required";
-            } else if (value.trim().length < 2) {
-                error = "Name must contain at least 2 characters";
-            } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(value.trim())) {
-                error = "Name should contain only letters and spaces";
-            }
-        }
- 
+
         if (field === "email") {
             if (!value.trim()) {
                 error = "Email is required";
@@ -142,96 +132,156 @@ function EditUser() {
                     value.trim()
                 )
             ) {
-                error = "Enter a valid email address";
+                error =
+                    "Enter a valid email address";
             }
         }
- 
+
+        if (field === "name" && role === "Admin") {
+            if (!value.trim()) {
+                error = "Name is required";
+            } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(value.trim())) {
+                error = "Name should contain only letters and spaces";
+            }
+        }
+
         if (field === "role") {
             if (!value) {
                 error = "Role is required";
             }
         }
- 
+
         if (field === "employee") {
-            if (role === "Employee" && !value) {
-                error = "Employee selection is required";
+            if (
+                role === "Employee" &&
+                !value
+            ) {
+                error =
+                    "Employee selection is required";
             }
         }
- 
-        setErrors((previous) => ({
+
+        setErrors(previous => ({
             ...previous,
             [field]: error
         }));
- 
-        return error;
-    }
- 
-    function validateAllFields() {
-        const nameError = validateField("name", name);
-        const emailError = validateField("email", email);
-        const roleError = validateField("role", role);
-        const employeeError =
-            role === "Employee" ? validateField("employee", employee) : "";
- 
-        return !(nameError || emailError || roleError || employeeError);
-    }
- 
-    function handleRoleChange(value) {
+
+        return !error;
+    };
+
+    const validateAllFields = () => {
+        const emailValid =
+            validateField("email", email);
+
+        const roleValid =
+            validateField("role", role);
+
+        const nameValid =
+            role === "Admin"
+                ? validateField("name", name)
+                : true;
+
+        const employeeValid =
+            role === "Employee"
+                ? validateField(
+                      "employee",
+                      employee
+                  )
+                : true;
+
+        return (
+            emailValid &&
+            roleValid &&
+            nameValid &&
+            employeeValid
+        );
+    };
+
+    const handleRoleChange = (value) => {
         setRole(value);
+
         validateField("role", value);
- 
+
         if (value !== "Employee") {
             setEmployee("");
-            setErrors((previous) => ({
+            setLinkedEmployeeName("");
+
+            setErrors(previous => ({
                 ...previous,
                 employee: ""
             }));
         }
-    }
- 
-    async function handleSubmit(e) {
+    };
+
+    const handleEmployeeChange = (value) => {
+        setEmployee(value);
+
+        const selectedEmployee =
+            employees.find(
+                item => item._id === value
+            );
+
+        setLinkedEmployeeName(
+            selectedEmployee?.name || ""
+        );
+
+        validateField(
+            "employee",
+            value
+        );
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
- 
+
         if (!validateAllFields()) {
-            toast.error("Please fix the errors in the form");
+            toast.error(
+                "Please fix the errors in the form"
+            );
             return;
         }
- 
+
         try {
             await api.put(
-                `${import.meta.env.VITE_API_URL}/users/${id}`,
+                `/users/${id}`,
                 {
-                    name,
-                    email,
+                    ...(role === "Admin" && {
+                        name: name.trim()
+                    }),
+                    email: email
+                        .trim()
+                        .toLowerCase(),
                     role,
-                    ...(role === "Employee" && { employee })
+                    ...(role === "Employee" && {
+                        employee
+                    })
                 }
             );
- 
-            toast.success("User Updated Successfully");
- 
+
+            toast.success(
+                "User updated successfully"
+            );
+
             navigate("/users");
- 
+
         } catch (error) {
-            console.log(error);
- 
-            const apiErrors = error.response?.data?.errors;
- 
+            const apiErrors =
+                error.response?.data?.errors;
+
             if (apiErrors) {
-                setErrors((previous) => ({
+                setErrors(previous => ({
                     ...previous,
                     ...apiErrors
                 }));
             }
- 
-            const message =
+
+            toast.error(
                 error.response?.data?.message ||
-                "Something went wrong";
- 
-            toast.error(message);
+                "Failed to update user"
+            );
         }
-    }
- 
+    };
+
     if (loading) {
         return (
             <Layout>
@@ -240,121 +290,164 @@ function EditUser() {
             </Layout>
         );
     }
- 
+
     return (
         <Layout>
-            <h1>Edit User</h1>
- 
-            <form onSubmit={handleSubmit}>
-                <div className="form-field">
-                    <label>Name</label>
- 
-                    <input
-                        type="text"
-                        value={name}
-                        className={errors.name ? "input-error" : ""}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setName(value);
-                            validateField("name", value);
-                        }}
-                    />
- 
-                    {errors.name && (
-                        <span className="field-error">
-                            {errors.name}
-                        </span>
-                    )}
+            <div className="page-header">
+                <div className="page-title-section">
+                    <h1>Edit User Account</h1>
+                    <p>
+                        Manage login and employee
+                        assignment
+                    </p>
                 </div>
- 
-                <div className="form-field">
-                    <label>Email</label>
- 
-                    <input
-                        type="email"
-                        value={email}
-                        className={errors.email ? "input-error" : ""}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setEmail(value);
-                            validateField("email", value);
-                        }}
-                    />
- 
-                    {errors.email && (
-                        <span className="field-error">
-                            {errors.email}
-                        </span>
-                    )}
-                </div>
- 
-                <div className="form-field">
-                    <label>Role</label>
- 
-                    <select
-                        value={role}
-                        className={errors.role ? "input-error" : ""}
-                        onChange={(e) => handleRoleChange(e.target.value)}
-                    >
-                        <option value="">Select Role</option>
-                        <option value="Employee">Employee</option>
-                        <option value="Admin">Admin</option>
-                    </select>
- 
-                    {errors.role && (
-                        <span className="field-error">
-                            {errors.role}
-                        </span>
-                    )}
-                </div>
- 
-                {role === "Employee" && (
-                    <div className="form-field">
-                        <label>Link to Employee</label>
- 
-                        <select
-                            value={employee}
-                            disabled={employeesLoading}
-                            className={errors.employee ? "input-error" : ""}
+            </div>
+
+            <div className="form-container">
+                <form onSubmit={handleSubmit}>
+
+                    <h3 style={{ marginTop: 0 }}>
+                        Account Information
+                    </h3>
+
+                    {role === "Admin" && (
+                        <FormField
+                            label="Full Name"
+                            name="name"
+                            type="text"
+                            value={name}
                             onChange={(e) => {
                                 const value = e.target.value;
-                                setEmployee(value);
-                                validateField("employee", value);
+                                setName(value);
+                                validateField("name", value);
                             }}
+                            error={errors.name}
+                            required
+                            placeholder="Enter administrator name"
+                        />
+                    )}
+
+                    <FormField
+                        label="Email Address"
+                        name="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                            const value =
+                                e.target.value;
+
+                            setEmail(value);
+                            validateField(
+                                "email",
+                                value
+                            );
+                        }}
+                        error={errors.email}
+                        required
+                        placeholder="user@company.com"
+                    />
+
+                    <h3>
+                        Role & Assignment
+                    </h3>
+
+                    <FormField
+                        label="User Role"
+                        name="role"
+                        type="select"
+                        value={role}
+                        onChange={(e) =>
+                            handleRoleChange(
+                                e.target.value
+                            )
+                        }
+                        error={errors.role}
+                        required
+                        options={[
+                            {
+                                value: "Employee",
+                                label: "Employee"
+                            },
+                            {
+                                value: "Admin",
+                                label: "Administrator"
+                            }
+                        ]}
+                    />
+
+                    {role === "Employee" && (
+                        <>
+                            <FormField
+                                label="Linked Employee"
+                                name="employee"
+                                type="select"
+                                value={employee}
+                                onChange={(e) =>
+                                    handleEmployeeChange(
+                                        e.target.value
+                                    )
+                                }
+                                error={
+                                    errors.employee
+                                }
+                                required
+                                options={employees.map(
+                                    item => ({
+                                        value:
+                                            item._id,
+                                        label: `${item.employeeId} - ${item.name}`
+                                    })
+                                )}
+                            />
+
+                            {linkedEmployeeName && (
+                                <div
+                                    className="alert alert-info"
+                                    style={{
+                                        marginBottom:
+                                            "var(--spacing-6)"
+                                    }}
+                                >
+                                    Employee name is managed
+                                    from the Employee record:
+                                    <strong
+                                        style={{
+                                            marginLeft:
+                                                "4px"
+                                        }}
+                                    >
+                                        {
+                                            linkedEmployeeName
+                                        }
+                                    </strong>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    <div className="form-actions">
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() =>
+                                navigate("/users")
+                            }
                         >
-                            <option value="">
-                                {employeesLoading
-                                    ? "Loading employees..."
-                                    : "Select Employee"}
-                            </option>
- 
-                            {employees.map((item) => (
-                                <option key={item._id} value={item._id}>
-                                    {item.employeeId} - {item.name}
-                                </option>
-                            ))}
-                        </select>
- 
-                        {errors.employee && (
-                            <span className="field-error">
-                                {errors.employee}
-                            </span>
-                        )}
- 
-                        {!employeesLoading && employees.length === 0 && (
-                            <span className="field-error">
-                                No employees found. Create an employee record first.
-                            </span>
-                        )}
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                        >
+                            Update User
+                        </button>
                     </div>
-                )}
- 
-                <button type="submit">
-                    Update User
-                </button>
-            </form>
+
+                </form>
+            </div>
         </Layout>
     );
 }
- 
+
 export default EditUser;

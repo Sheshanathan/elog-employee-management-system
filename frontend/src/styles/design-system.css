@@ -3298,115 +3298,20 @@ h3 {
     max-height: 340px !important;
   }
 }
-/* ============================================================================
-   LEAVE DETAILS MODAL — FINAL ACTION BUTTON LAYOUT
-   Prevent Approve / Reject / Cancel / Close from being cut off
-   ============================================================================ */
 
-/* Footer */
-.leave-modal-footer,
-.leave-details-actions,
-.modal-actions,
-.leave-actions,
-.modal-footer {
-  width: 100% !important;
-  box-sizing: border-box !important;
-
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-
-  gap: 12px !important;
-  padding: 20px 24px !important;
-
-  align-items: stretch !important;
-  justify-content: stretch !important;
-
-  overflow: visible !important;
-}
-
-/* Buttons */
-.leave-modal-footer button,
-.leave-details-actions button,
-.modal-actions button,
-.leave-actions button,
-.modal-footer button {
-  width: 100% !important;
+/* Leave Details only */
+.leave-details-footer .btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
   min-width: 0 !important;
-  max-width: none !important;
-
-  box-sizing: border-box !important;
-  margin: 0 !important;
-
   white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis;
-
-  flex: none !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  margin: 0 !important;
 }
 
-/* Make sure modal itself has proper sizing */
-.modal-dialog,
-.leave-modal,
-.leave-details-modal,
-.modal-content {
-  box-sizing: border-box !important;
-  width: min(900px, calc(100vw - 32px)) !important;
-  max-width: calc(100vw - 32px) !important;
-
-  overflow-x: hidden !important;
-}
-
-/* Prevent footer from becoming wider than modal */
-.leave-modal-footer *,
-.leave-details-actions *,
-.modal-actions *,
-.leave-actions *,
-.modal-footer * {
-  box-sizing: border-box !important;
-}
-
-
-/* ============================================================================
-   TABLET / SMALL DESKTOP
-   ============================================================================ */
-
-@media (max-width: 700px) {
-  .leave-modal-footer,
-  .leave-details-actions,
-  .modal-actions,
-  .leave-actions,
-  .modal-footer {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    padding: 16px !important;
-  }
-}
-
-
-/* ============================================================================
-   MOBILE
-   ============================================================================ */
-
-@media (max-width: 450px) {
-  .leave-modal-footer,
-  .leave-details-actions,
-  .modal-actions,
-  .leave-actions,
-  .modal-footer {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-    padding: 16px !important;
-  }
-
-  .leave-modal-footer button,
-  .leave-details-actions button,
-  .modal-actions button,
-  .leave-actions button,
-  .modal-footer button {
-    width: 100% !important;
-  }
+.leave-details-footer .btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
 }
