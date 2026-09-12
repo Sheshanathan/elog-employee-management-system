@@ -20,8 +20,13 @@ function errorHandler(err, req, res, next) {
         });
     }
 
-    res.status(err.status || 500).json({
-        message: err.message || "Internal Server Error"
+    const status = err.status || 500;
+
+    res.status(status).json({
+        message:
+            status >= 500
+                ? "Internal Server Error"
+                : err.message || "Request failed"
     });
 }
 

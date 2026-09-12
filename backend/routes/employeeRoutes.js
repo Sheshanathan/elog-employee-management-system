@@ -4,7 +4,6 @@ const router = express.Router();
 const employeeController = require("../controllers/employeeController");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
-const upload = require("../middleware/upload");
 const {
     validateEmployeeData
 } = require("../middleware/validation");
@@ -389,48 +388,6 @@ router.delete(
     auth,
     admin,
     employeeController.deleteEmployee
-);
-
-
-/**
- * @swagger
- * /upload:
- *   post:
- *     summary: Upload employee image
- *     tags:
- *       - Employees
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - image
- *             properties:
- *               image:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: File uploaded successfully
- *       400:
- *         description: No image file uploaded
- *       401:
- *         description: Authentication required
- *       403:
- *         description: Admin access required
- *       500:
- *         description: Failed to upload image
- */
-router.post(
-    "/upload",
-    auth,
-    admin,
-    upload.single("image"),
-    employeeController.uploadImage
 );
 
 

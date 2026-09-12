@@ -9,7 +9,8 @@ async function connectDB(){
         await migrateEmployeeDepartments();
         await migrateEmployeeDesignations();
     }catch(error){
-        console.log(error);
+        console.error("MongoDB connection failed");
+        throw error;
     }
 }
 module.exports=connectDB;
