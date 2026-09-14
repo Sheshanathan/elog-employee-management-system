@@ -52,7 +52,7 @@ A new, empty database requires a controlled one-time process to create the first
 | Backend | Node.js, Express |
 | Database | MongoDB with Mongoose |
 | Authentication | JSON Web Tokens and bcrypt password hashing |
-| Email | Nodemailer |
+| Email | Brevo Transactional Email API over HTTPS |
 | API documentation | Swagger UI in non-production environments |
 | Deployment | Vercel frontend and Render backend |
 
@@ -87,13 +87,13 @@ employee-management-system/
 - Node.js `22.12.0` or newer in the Node 22 release line
 - npm
 - A MongoDB database
-- An email account or provider for password-reset messages
+- A Brevo account and verified sender for password-reset messages
 
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd employee-management-system
+git clone https://github.com/Sheshanathan/elog-employee-management-system.git
+cd elog-employee-management-system
 ```
 
 ### 2. Configure and start the backend
@@ -165,14 +165,30 @@ npm run preview  # Preview the production build locally
 
 ## Production Deployment
 
-### Backend on Render
+The production stack uses MongoDB Atlas, Render, Vercel, and Brevo. Keep all
+passwords, database URLs, JWT secrets, and API keys in the hosting providers'
+environment settings, never in Git.
+
+### 1. MongoDB Atlas
+
+1. Create an Atlas cluster and restore the `employeeDB` database.
+2. Create a dedicated application database user with only the `readWrite` role
+   on `employeeDB`. Do not use an Atlas administrator account in the deployed
+   application.
+3. After creating the Render service, copy every range from
+   **Render → Connect → Outbound** into the Atlas IP Access List.
+4. Keep the temporary migration user only until the deployed application has
+   been verified, then remove it.
+
+### 2. Backend on Render
 
 Create a Node Web Service with:
 
 ```text
-Root Directory: backend
-Build Command: npm ci
-Start Command: npm start
+Branch: main
+Root Directory: leave blank
+Build Command: npm --prefix backend ci
+Start Command: npm --prefix backend start
 ```
 
 Configure these environment variables in Render, never in Git:
@@ -187,15 +203,36 @@ BREVO_API_KEY=<Brevo transactional email API key>
 FRONTEND_URL=https://your-frontend-domain.example
 ```
 
-Render supplies `PORT`, so it does not need to be configured manually.
+`EMAIL_USER` must exactly match a verified Brevo sender. Use a standard Brevo
+API key, not an SMTP key or MCP key. Render supplies `PORT`, so it does not need
+to be configured manually.
 
-### Frontend on Vercel
+For the initial backend deployment, `FRONTEND_URL` can temporarily be
+`https://example.com`. Replace it with the final Vercel production origin as
+soon as the frontend is deployed.
+
+Render Free blocks outbound SMTP ports. This project therefore sends email
+through Brevo's HTTPS API instead of Gmail SMTP.
+
+### 3. Brevo transactional email
+
+1. Add and verify the sender address used for `EMAIL_USER`.
+2. Open **Settings → SMTP & API → API Keys & MCP** and generate a standard API
+   key. Do not enable the MCP-key option.
+3. Store the key only as `BREVO_API_KEY` in Render.
+4. If Brevo API IP restrictions are enabled, authorize every Render outbound IP
+   range.
+5. A free-mail sender such as Gmail can be used for a portfolio demo, but a
+   custom authenticated domain is recommended for production deliverability.
+
+### 4. Frontend on Vercel
 
 Import the same repository and configure:
 
 ```text
 Root Directory: frontend
 Framework: Vite
+Install Command: npm ci
 Build Command: npm run build
 Output Directory: dist
 ```
@@ -206,7 +243,30 @@ Add the production backend address:
 VITE_API_URL=https://your-backend-domain.example
 ```
 
-Redeploy the frontend after changing `VITE_API_URL`. Ensure the backend `FRONTEND_URL` exactly matches the final Vercel origin.
+`VITE_API_URL` is intentionally public and should be saved as a Vercel Config
+value. It must contain only the public Render URL, without a trailing slash.
+Redeploy the frontend after adding or changing it because Vite embeds the value
+during the build.
+
+### 5. Connect and verify production
+
+1. Replace Render's temporary `FRONTEND_URL` with the exact Vercel production
+   origin, without a trailing slash, and redeploy the backend.
+2. Open the Render URL and confirm the API welcome response appears.
+3. Open the Vercel application and test Admin and Employee login flows.
+4. Request a new password-reset email, open the newest link within 15 minutes,
+   set a new password, and sign in with it.
+5. Free Render services can sleep when idle, so the first request after a period
+   of inactivity may take longer.
+
+### 6. Post-deployment cleanup
+
+- Remove the temporary MongoDB migration user after the application user works.
+- Delete superseded Brevo API keys and retain only the active production key.
+- Remove the old `EMAIL_PASS` variable from Render; this project no longer uses
+  Gmail SMTP.
+- Retain the database archive privately as a backup or remove it securely when
+  it is no longer required.
 
 ## Security Notes
 
@@ -215,6 +275,7 @@ Redeploy the frontend after changing `VITE_API_URL`. Ensure the backend `FRONTEN
 - Keep production databases separate from demo and development databases.
 - Use a strong, unique MongoDB password and restrict database network access.
 - Use a verified Brevo sender and keep the Brevo API key only in the backend environment.
+- Treat `VITE_API_URL` as public configuration; never put secrets in variables prefixed with `VITE_`.
 - Keep the public repository free of uploaded employee documents and personal files.
 - API documentation is disabled when `NODE_ENV=production`.
 
