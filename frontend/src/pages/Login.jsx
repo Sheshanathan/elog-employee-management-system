@@ -12,6 +12,11 @@ import "../styles/design-system.css";
 const EMAIL_PATTERN =
     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
+const DEMO_CREDENTIALS = {
+    email: "demo.employee@example.com",
+    password: "demo@Employee1"
+};
+
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -208,6 +213,16 @@ function Login() {
         }
     }
 
+    function fillDemoCredentials() {
+        setEmail(DEMO_CREDENTIALS.email);
+        setPassword(DEMO_CREDENTIALS.password);
+        setErrors({
+            email: "",
+            password: "",
+            form: ""
+        });
+    }
+
     return (
         <div className="login-container">
             <div className="login-box">
@@ -227,6 +242,45 @@ function Login() {
                 <p className="login-subtitle">
                     Access your elog workspace
                 </p>
+
+                <section
+                    className="login-demo-card"
+                    aria-labelledby="demo-login-title"
+                >
+                    <div className="login-demo-heading">
+                        <div>
+                            <h2 id="demo-login-title">
+                                Demo Employee Login
+                            </h2>
+                            <p>
+                                Explore the employee experience with
+                                fictional data.
+                            </p>
+                        </div>
+                        <span className="login-demo-badge">
+                            Employee
+                        </span>
+                    </div>
+
+                    <dl className="login-demo-credentials">
+                        <div>
+                            <dt>Email</dt>
+                            <dd>{DEMO_CREDENTIALS.email}</dd>
+                        </div>
+                        <div>
+                            <dt>Password</dt>
+                            <dd>{DEMO_CREDENTIALS.password}</dd>
+                        </div>
+                    </dl>
+
+                    <button
+                        type="button"
+                        className="login-demo-button"
+                        onClick={fillDemoCredentials}
+                    >
+                        Use Demo Account
+                    </button>
+                </section>
 
                 <form
                     onSubmit={handleLogin}
