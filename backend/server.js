@@ -20,7 +20,7 @@ const requiredEnvironmentVariables = [
     "MONGODB_URI",
     "JWT_SECRET",
     "EMAIL_USER",
-    "EMAIL_PASS",
+    "BREVO_API_KEY",
     "FRONTEND_URL"
 ];
 const missingEnvironmentVariables = requiredEnvironmentVariables.filter(

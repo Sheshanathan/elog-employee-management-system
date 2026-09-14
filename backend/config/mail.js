@@ -1,49 +1,63 @@
-const dns = require("node:dns").promises;
-const nodemailer = require("nodemailer");
+const BREVO_EMAIL_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
-let transporterPromise;
-
-async function createTransporter() {
-    // Render does not provide an outbound IPv6 route on every service. Resolve
-    // Gmail explicitly over IPv4 so email delivery does not fail with
-    // ENETUNREACH when DNS also returns an IPv6 address.
-    const addresses = await dns.resolve4("smtp.gmail.com");
-
-    if (addresses.length === 0) {
-        throw new Error("Unable to resolve an IPv4 address for Gmail SMTP");
+function formatRecipient(recipient) {
+    if (typeof recipient === "string") {
+        return { email: recipient };
     }
 
-    return nodemailer.createTransport({
-        host: addresses[0],
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-        tls: {
-            servername: "smtp.gmail.com",
-            minVersion: "TLSv1.2"
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 10000,
-        socketTimeout: 30000
-    });
+    if (recipient && recipient.address) {
+        return {
+            email: recipient.address,
+            ...(recipient.name ? { name: recipient.name } : {})
+        };
+    }
+
+    throw new Error("A valid email recipient is required");
 }
 
-async function sendMail(options) {
-    if (!transporterPromise) {
-        transporterPromise = createTransporter();
-    }
+async function sendMail({ to, subject, html, text }) {
+    const recipients = (Array.isArray(to) ? to : [to]).map(
+        formatRecipient
+    );
+
+    const response = await fetch(BREVO_EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: {
+            accept: "application/json",
+            "api-key": process.env.BREVO_API_KEY,
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            sender: {
+                name: "elog - Employee Management System",
+                email: process.env.EMAIL_USER
+            },
+            to: recipients,
+            subject,
+            ...(html ? { htmlContent: html } : {}),
+            ...(text ? { textContent: text } : {})
+        }),
+        signal: AbortSignal.timeout(15000)
+    });
+
+    let result = {};
 
     try {
-        const transporter = await transporterPromise;
-        return await transporter.sendMail(options);
-    } catch (error) {
-        // Re-resolve Gmail on the next attempt in case its IP address changed.
-        transporterPromise = undefined;
-        throw error;
+        result = await response.json();
+    } catch (_error) {
+        // Brevo can return an empty body for some infrastructure errors.
     }
+
+    if (!response.ok) {
+        const message =
+            typeof result.message === "string"
+                ? result.message
+                : "Email provider request failed";
+
+        throw new Error(`Brevo API error (${response.status}): ${message}`);
+    }
+
+    return result;
 }
 
 module.exports = { sendMail };

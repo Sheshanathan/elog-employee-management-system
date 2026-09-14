@@ -112,8 +112,8 @@ Configure `backend/.env` before starting:
 | `PORT` | Local backend port, normally `3000` |
 | `MONGODB_URI` | MongoDB connection string |
 | `JWT_SECRET` | Strong random JWT signing secret |
-| `EMAIL_USER` | Email address used to send messages |
-| `EMAIL_PASS` | Provider-specific App Password or SMTP credential |
+| `EMAIL_USER` | Sender address verified in Brevo |
+| `BREVO_API_KEY` | Brevo transactional email API key |
 | `FRONTEND_URL` | Exact frontend origin, without a trailing slash |
 
 Generate a strong local JWT secret with:
@@ -183,7 +183,7 @@ NODE_VERSION=22.23.2
 MONGODB_URI=<production MongoDB connection>
 JWT_SECRET=<strong random secret>
 EMAIL_USER=<sender email>
-EMAIL_PASS=<email App Password or SMTP credential>
+BREVO_API_KEY=<Brevo transactional email API key>
 FRONTEND_URL=https://your-frontend-domain.example
 ```
 
@@ -214,11 +214,10 @@ Redeploy the frontend after changing `VITE_API_URL`. Ensure the backend `FRONTEN
 - Use fictional data for public demonstrations.
 - Keep production databases separate from demo and development databases.
 - Use a strong, unique MongoDB password and restrict database network access.
-- Use a Gmail App Password or a production email provider instead of a normal email-account password.
+- Use a verified Brevo sender and keep the Brevo API key only in the backend environment.
 - Keep the public repository free of uploaded employee documents and personal files.
 - API documentation is disabled when `NODE_ENV=production`.
 
 ## Current Scope
 
 This application is designed as a single-organization employee management system. It is suitable for a portfolio demonstration or a controlled internal deployment. A public multi-company SaaS version would additionally require organization-level data isolation, company onboarding, invitations, expanded security controls, monitoring, backups, and billing.
-
