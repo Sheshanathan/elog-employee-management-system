@@ -20,6 +20,8 @@ const PHONE_PATTERN =
 const NAME_PATTERN =
     /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
+const DEMO_ACCOUNT_EMAIL = "demo.employee@example.com";
+
 function Profile() {
     const navigate = useNavigate();
     const { applyUser } = useAuth();
@@ -381,6 +383,11 @@ function Profile() {
         );
     }
 
+    const isDemoAccount =
+        user?.role === "Employee" &&
+        user?.email?.trim().toLowerCase() ===
+            DEMO_ACCOUNT_EMAIL;
+
     return (
         <Layout>
             <div className="page-header">
@@ -476,6 +483,14 @@ function Profile() {
                                 }
                                 error={
                                     errors.email
+                                }
+                                disabled={
+                                    isDemoAccount
+                                }
+                                helperText={
+                                    isDemoAccount
+                                        ? "Locked for the public demo account"
+                                        : ""
                                 }
                                 required
                                 placeholder="employee@company.com"

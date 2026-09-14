@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const Employee = require("../models/Employee");
 const { EMPLOYEE_NESTED_POPULATE } = require("../utils/employeeHelpers");
 
+const DEMO_ACCOUNT_EMAIL = "demo.employee@example.com";
+
 
 /*
  * =========================================================
@@ -501,6 +503,24 @@ exports.updateMyProfile = async (req, res) => {
 
         const normalizedEmail =
             email.trim().toLowerCase();
+
+        const existingEmail = String(
+            existingUser.email || ""
+        ).trim().toLowerCase();
+
+        if (
+            existingEmail === DEMO_ACCOUNT_EMAIL &&
+            normalizedEmail !== existingEmail
+        ) {
+            return res.status(403).json({
+                message:
+                    "The demo account email cannot be changed",
+                errors: {
+                    email:
+                        "The demo account email is locked"
+                }
+            });
+        }
 
         if (
             !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(
