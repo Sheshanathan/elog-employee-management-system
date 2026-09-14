@@ -1,10 +1,10 @@
-# eLog Employee Management System
+# elog Employee Management System
 
 <p align="center">
-  <img src="frontend/public/elog-logo.png" alt="eLog logo" width="180" />
+  <img src="frontend/public/elog-logo.png" alt="elog logo" width="180" />
 </p>
 
-eLog is a full-stack employee management application for a single organization. It gives administrators a central place to manage employees, departments, designations, attendance, leave, and user accounts, while employees receive a focused self-service dashboard.
+elog is a full-stack employee management application for a single organization. It gives administrators a central place to manage employees, departments, designations, attendance, leave, and user accounts, while employees receive a focused self-service dashboard.
 
 > The repository contains application code and fictional/demo data only. Environment files and production credentials must never be committed.
 
