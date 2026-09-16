@@ -2542,6 +2542,15 @@ td.cell-ellipsis,
   color: #5a3900;
 }
 
+.btn-demo-locked,
+.btn-demo-locked:hover,
+.btn-demo-locked:focus-visible {
+  opacity: 0.62;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 .login-form-error {
   background: var(--error-100);
   border: 1px solid var(--error-500);

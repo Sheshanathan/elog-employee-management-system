@@ -16,6 +16,10 @@ import { matchesSearch } from "../utils/search";
 import { formatCurrency } from "../utils/currency";
 import "../styles/design-system.css";
 import { downloadCSV, parseCSV } from "../utils/csv";
+import { useAuth } from "../context/AuthContext";
+
+const DEMO_READ_ONLY_MESSAGE =
+    "Demo access is read-only. You can view and export data, but changes are disabled.";
 
 function formatShortDate(value) {
     if (!value) return "—";
@@ -121,6 +125,7 @@ function isValidDateString(value) {
 }
 
 function Employees() {
+    const { isDemo } = useAuth();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
@@ -170,6 +175,10 @@ function Employees() {
 
     const role =
         localStorage.getItem("role");
+
+    const showDemoReadOnlyMessage = () => {
+        toast.info(DEMO_READ_ONLY_MESSAGE);
+    };
 
     useEffect(() => {
         loadEmployees();
@@ -499,6 +508,11 @@ function Employees() {
             e.target.files?.[0];
 
         e.target.value = "";
+
+        if (isDemo) {
+            showDemoReadOnlyMessage();
+            return;
+        }
 
         if (!file) {
             return;
@@ -841,6 +855,11 @@ function Employees() {
     };
 
     const confirmImport = async () => {
+        if (isDemo) {
+            showDemoReadOnlyMessage();
+            return;
+        }
+
         if (
             importPreviewRows.length ===
             0
@@ -1041,12 +1060,23 @@ function Employees() {
                             importing
                                 ? "is-loading"
                                 : ""
-                        }`}
-                        onClick={() =>
-                            fileInputRef.current?.click()
-                        }
+                        }${isDemo ? " btn-demo-locked" : ""}`}
+                        onClick={() => {
+                            if (isDemo) {
+                                showDemoReadOnlyMessage();
+                                return;
+                            }
+
+                            fileInputRef.current?.click();
+                        }}
                         disabled={
                             importing
+                        }
+                        aria-disabled={isDemo}
+                        title={
+                            isDemo
+                                ? DEMO_READ_ONLY_MESSAGE
+                                : "Import employees from a CSV file"
                         }
                     >
                         {importing
@@ -1055,11 +1085,20 @@ function Employees() {
                     </button>
 
                     <button
-                        className="btn btn-primary"
-                        onClick={() =>
-                            navigate(
-                                "/add-employee"
-                            )
+                        className={`btn btn-primary${isDemo ? " btn-demo-locked" : ""}`}
+                        onClick={() => {
+                            if (isDemo) {
+                                showDemoReadOnlyMessage();
+                                return;
+                            }
+
+                            navigate("/add-employee");
+                        }}
+                        aria-disabled={isDemo}
+                        title={
+                            isDemo
+                                ? DEMO_READ_ONLY_MESSAGE
+                                : "Add a new employee"
                         }
                     >
                         Add Employee
