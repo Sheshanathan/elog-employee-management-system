@@ -153,17 +153,21 @@ exports.createUser = async (req, res) => {
         const hashedPassword =
             await bcrypt.hash(password, 10);
 
-        const user = new User({
+        const userData = {
             name: role === "Admin" ? normalizedName : undefined,
             email: normalizedEmail,
             password: hashedPassword,
             role,
-            isDemo: isDemoAdmin,
-            employee:
-                role === "Employee"
-                    ? employee
-                    : null
-        });
+            isDemo: isDemoAdmin
+        };
+
+        // Keep the employee field absent for administrators. The unique,
+        // sparse employee index should only apply to employee accounts.
+        if (role === "Employee") {
+            userData.employee = employee;
+        }
+
+        const user = new User(userData);
 
         await user.save();
 
@@ -321,16 +325,21 @@ exports.updateUser = async (req, res) => {
         }
 
         const userUpdate = {
-            email: normalizedEmail,
-            role,
-            employee: employeeId
+            $set: {
+                email: normalizedEmail,
+                role
+            }
         };
 
         if (role === "Admin") {
-            userUpdate.name = normalizedName;
+            userUpdate.$set.name = normalizedName;
+            // Removing the field prevents Admin accounts from colliding on
+            // the unique, sparse employee index.
+            userUpdate.$unset = { employee: 1 };
         } else {
             // Remove legacy duplicated names when an account is (or becomes)
             // employee-linked. Employee.name is the sole source of truth.
+            userUpdate.$set.employee = employeeId;
             userUpdate.$unset = { name: 1 };
         }
 
