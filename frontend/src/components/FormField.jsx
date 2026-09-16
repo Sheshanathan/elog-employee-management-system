@@ -322,12 +322,15 @@ export function ResultsSummary({ shown, total, label = "results" }) {
 export function EmptyState({ 
   title = "No Data Available", 
   message = "There is no data to display.",
+  icon = null,
   action = null,
   actionText = "Create New"
 }) {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon" aria-hidden="true" />
+      <div className={`empty-state-icon${icon ? ' has-icon' : ''}`} aria-hidden="true">
+        {icon}
+      </div>
       <h3>{title}</h3>
       <p>{message}</p>
       {action && (

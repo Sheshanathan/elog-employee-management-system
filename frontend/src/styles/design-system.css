@@ -1421,6 +1421,18 @@ tbody tr:last-child td {
   border: 2px solid var(--brand-purple-light);
 }
 
+.empty-state-icon.has-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-purple);
+}
+
+.empty-state-icon.has-icon svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
 .error-state-icon {
   background-color: var(--error-100);
   border: 2px solid var(--error-500);
