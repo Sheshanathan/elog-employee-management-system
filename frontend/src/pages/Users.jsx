@@ -15,7 +15,9 @@ import { matchesSearch } from "../utils/search";
 import '../styles/design-system.css';
 import { downloadCSV } from "../utils/csv";
 import { getUserDisplayName } from "../utils/userDisplay";
+import { useAuth } from "../context/AuthContext";
 function Users() {
+    const { isDemo } = useAuth();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -101,7 +103,11 @@ function Users() {
             <div className="page-header">
                 <div className="page-title-section">
                     <h1>Users</h1>
-                    <p>Manage system login accounts</p>
+                    <p>
+                        {isDemo
+                            ? "Explore fictional login accounts. Private administrator accounts are hidden."
+                            : "Manage system login accounts"}
+                    </p>
                 </div>
                <div className="page-actions">
     <button className="btn btn-secondary" onClick={handleExport}>

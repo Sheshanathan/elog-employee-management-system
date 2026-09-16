@@ -15,7 +15,19 @@ const DEMO_ADMIN_EMAIL = "demo.admin@example.com";
  */
 exports.getUsers = async (req, res) => {
     try {
-        const users = await User.find()
+        const query = req.user.isDemo
+            ? {
+                $or: [
+                    { role: { $ne: "Admin" } },
+                    { isDemo: true },
+                    { _id: req.user.id }
+                ]
+            }
+            : {};
+
+        // Public demo sessions must never receive private administrator
+        // account details. This is enforced in the API, not only the UI.
+        const users = await User.find(query)
             .select("-password")
             .populate(EMPLOYEE_NESTED_POPULATE);
 
@@ -46,7 +58,17 @@ exports.getUserById = async (req, res) => {
             });
         }
 
-        const user = await User.findById(id)
+        const query = { _id: id };
+
+        if (req.user.isDemo) {
+            query.$or = [
+                { role: { $ne: "Admin" } },
+                { isDemo: true },
+                { _id: req.user.id }
+            ];
+        }
+
+        const user = await User.findOne(query)
             .select("-password")
             .populate(EMPLOYEE_NESTED_POPULATE);
 
