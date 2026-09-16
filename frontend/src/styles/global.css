@@ -102,9 +102,9 @@ a {
 }
 
 .login-box {
-    width: 420px;
+    width: min(960px, calc(100% - 32px));
     background: #ffffff;
-    padding: 35px;
+    padding: 28px;
     border-radius: 12px;
     box-shadow: 0 8px 25px rgba(255, 189, 89, 0.12);
     border: 1px solid #f0e6d8;
@@ -446,7 +446,7 @@ h2 {
     }
 
     .login-box {
-        width: 90%;
+        width: min(420px, calc(100% - 32px));
     }
 
     .employee-table-wrapper,

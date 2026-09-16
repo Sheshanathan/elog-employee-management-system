@@ -2307,9 +2307,29 @@ td.cell-ellipsis,
 }
 
 /* Login branding */
+.login-container {
+  box-sizing: border-box;
+  padding: var(--spacing-6);
+}
+
+.login-box {
+  width: min(960px, calc(100% - 32px));
+  padding: var(--spacing-7);
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(340px, 1fr);
+  grid-template-areas:
+    "brand demo"
+    "title demo"
+    "subtitle demo"
+    "form demo";
+  column-gap: var(--spacing-8);
+  align-items: start;
+}
+
 .login-brand {
+  grid-area: brand;
   text-align: center;
-  margin-bottom: var(--spacing-6);
+  margin-bottom: var(--spacing-4);
 }
 
 .login-brand a {
@@ -2317,20 +2337,37 @@ td.cell-ellipsis,
   justify-content: center;
 }
 
+.login-box > h1 {
+  grid-area: title;
+  margin-bottom: var(--spacing-3);
+}
+
+.login-box > form {
+  grid-area: form;
+}
+
+.login-box .app-logo-login {
+  width: 72px;
+  height: 72px;
+}
+
 .login-subtitle {
+  grid-area: subtitle;
   text-align: center;
   color: var(--text-secondary);
   font-size: var(--font-size-base);
   margin-top: calc(var(--spacing-2) * -1);
-  margin-bottom: var(--spacing-6);
+  margin-bottom: var(--spacing-5);
 }
 
 .login-demo-card {
+  grid-area: demo;
+  align-self: center;
   background: #faf7ff;
   border: 1px solid #e5d9f8;
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
-  margin-bottom: var(--spacing-6);
+  margin-bottom: 0;
 }
 
 .login-demo-heading {
@@ -2438,6 +2475,50 @@ td.cell-ellipsis,
 .login-demo-button:focus-visible {
   outline: 3px solid rgba(111, 45, 189, 0.24);
   outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    align-items: flex-start;
+    padding: var(--spacing-4);
+  }
+
+  .login-box {
+    width: min(420px, 100%);
+    padding: var(--spacing-5);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .login-brand,
+  .login-box > h1,
+  .login-subtitle,
+  .login-box > form,
+  .login-demo-card {
+    width: 100%;
+  }
+
+  .login-brand {
+    order: 1;
+  }
+
+  .login-box > h1 {
+    order: 2;
+  }
+
+  .login-subtitle {
+    order: 3;
+  }
+
+  .login-box > form {
+    order: 4;
+  }
+
+  .login-demo-card {
+    order: 5;
+    margin-top: var(--spacing-6);
+  }
 }
 
 .demo-readonly-banner {
