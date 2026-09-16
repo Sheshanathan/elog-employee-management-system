@@ -23,7 +23,7 @@ export function getUserDisplayName(user) {
     return user.email || "";
 }
 
-export function persistSession({ token, role, name }) {
+export function persistSession({ token, role, name, isDemo = false }) {
     if (token) {
         localStorage.setItem("token", token);
     }
@@ -37,10 +37,17 @@ export function persistSession({ token, role, name }) {
     } else {
         localStorage.removeItem("name");
     }
+
+    if (isDemo) {
+        localStorage.setItem("isDemo", "true");
+    } else {
+        localStorage.removeItem("isDemo");
+    }
 }
 
 export function clearSession() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("name");
+    localStorage.removeItem("isDemo");
 }

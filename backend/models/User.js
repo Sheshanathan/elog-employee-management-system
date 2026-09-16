@@ -65,6 +65,14 @@ const userSchema = new mongoose.Schema(
             default: true
         },
 
+        // Demo accounts can browse protected data but cannot perform writes.
+        // The authentication middleware enforces this on every protected
+        // non-read request.
+        isDemo: {
+            type: Boolean,
+            default: false
+        },
+
         passwordResetToken: {
             type: String,
             default: null

@@ -16,6 +16,9 @@ export function AuthProvider({ children }) {
     const [role, setRole] = useState(
         () => localStorage.getItem("role") || ""
     );
+    const [isDemo, setIsDemo] = useState(
+        () => localStorage.getItem("isDemo") === "true"
+    );
     const location = useLocation();
 
     const applyUser = useCallback((user) => {
@@ -25,13 +28,16 @@ export function AuthProvider({ children }) {
 
         const nextName = getUserDisplayName(user);
         const nextRole = user.role || localStorage.getItem("role") || "";
+        const nextIsDemo = Boolean(user.isDemo);
 
         setDisplayName(nextName);
         setRole(nextRole);
+        setIsDemo(nextIsDemo);
 
         persistSession({
             role: nextRole,
-            name: nextName
+            name: nextName,
+            isDemo: nextIsDemo
         });
     }, []);
 
@@ -48,6 +54,7 @@ export function AuthProvider({ children }) {
         if (!token) {
             setDisplayName("");
             setRole("");
+            setIsDemo(false);
             return;
         }
 
@@ -70,17 +77,20 @@ export function AuthProvider({ children }) {
         persistSession({
             token: session.token,
             role: session.role,
-            name: session.name || ""
+            name: session.name || "",
+            isDemo: Boolean(session.isDemo)
         });
 
         setDisplayName(session.name || "");
         setRole(session.role || "");
+        setIsDemo(Boolean(session.isDemo));
     }, []);
 
     const logout = useCallback(() => {
         clearSession();
         setDisplayName("");
         setRole("");
+        setIsDemo(false);
     }, []);
 
     useEffect(() => {
@@ -103,12 +113,13 @@ export function AuthProvider({ children }) {
         () => ({
             displayName,
             role,
+            isDemo,
             applyUser,
             refreshSession,
             login,
             logout
         }),
-        [displayName, role, applyUser, refreshSession, login, logout]
+        [displayName, role, isDemo, applyUser, refreshSession, login, logout]
     );
 
     return (
@@ -125,6 +136,7 @@ export function useAuth() {
         return {
             displayName: localStorage.getItem("name") || "",
             role: localStorage.getItem("role") || "",
+            isDemo: localStorage.getItem("isDemo") === "true",
             applyUser: () => {},
             refreshSession: async () => {},
             login: () => {},

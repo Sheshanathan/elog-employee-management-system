@@ -383,10 +383,14 @@ function Profile() {
         );
     }
 
-    const isDemoAccount =
-        user?.role === "Employee" &&
-        user?.email?.trim().toLowerCase() ===
-            DEMO_ACCOUNT_EMAIL;
+    const isReadOnlyDemo = Boolean(user?.isDemo);
+    const isLockedDemoEmail =
+        isReadOnlyDemo ||
+        (
+            user?.role === "Employee" &&
+            user?.email?.trim().toLowerCase() ===
+                DEMO_ACCOUNT_EMAIL
+        );
 
     return (
         <Layout>
@@ -400,7 +404,7 @@ function Profile() {
                 </div>
 
                 <div className="page-actions">
-                    {!editing && (
+                    {!editing && !isReadOnlyDemo && (
                         <button
                             type="button"
                             className="btn btn-primary"
@@ -485,11 +489,11 @@ function Profile() {
                                     errors.email
                                 }
                                 disabled={
-                                    isDemoAccount
+                                    isLockedDemoEmail
                                 }
                                 helperText={
-                                    isDemoAccount
-                                        ? "Locked for the public demo account"
+                                    isLockedDemoEmail
+                                        ? "Locked for this public demo account"
                                         : ""
                                 }
                                 required

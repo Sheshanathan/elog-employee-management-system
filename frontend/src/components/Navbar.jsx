@@ -13,7 +13,7 @@ import "../styles/design-system.css";
  * user menu (Profile / Logout) with a proper confirmation modal.
  */
 function Navbar() {
-    const { displayName, role, logout } = useAuth();
+    const { displayName, role, isDemo, logout } = useAuth();
     const name = displayName;
     const navigate = useNavigate();
 
@@ -79,7 +79,10 @@ function Navbar() {
                         </span>
                         <span className="topnav-user-info">
                             <span className="topnav-user-name">{name || "User"}</span>
-                            <span className="topnav-user-role">{role || "Employee"}</span>
+                            <span className="topnav-user-role">
+                                {role || "Employee"}
+                                {isDemo ? " · Demo" : ""}
+                            </span>
                         </span>
                     </button>
 

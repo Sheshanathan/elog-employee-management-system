@@ -7,6 +7,35 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
+    const isDemo =
+        localStorage.getItem("isDemo") === "true";
+    const method = (config.method || "get").toUpperCase();
+    const requestUrl = config.url || "";
+    const isAuthRequest =
+        /\/(login|forgot-password|reset-password)(\/|$|\?)/.test(
+            requestUrl
+        );
+
+    if (
+        isDemo &&
+        !isAuthRequest &&
+        !["GET", "HEAD", "OPTIONS"].includes(method)
+    ) {
+        const error = new Error(
+            "This is a read-only demo account. Changes are disabled."
+        );
+
+        error.config = config;
+        error.response = {
+            status: 403,
+            data: {
+                message:
+                    "This is a read-only demo account. Changes are disabled."
+            }
+        };
+
+        return Promise.reject(error);
+    }
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;

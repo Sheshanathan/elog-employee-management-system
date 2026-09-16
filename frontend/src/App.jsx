@@ -25,6 +25,7 @@ import Unauthorized from "./pages/Unauthorized";
 import MyLeave from "./pages/MyLeave";
 import LeaveManagement from "./pages/LeaveManagement";
 import { AuthProvider } from "./context/AuthContext";
+import DemoWriteRoute from "./components/DemoWriteRoute";
 
 const admin = (Page) => (
     <ProtectedRoute allowedRole="Admin">{Page}</ProtectedRoute>
@@ -42,16 +43,16 @@ function App() {
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/employees" element={admin(<Employees />)} />
                 <Route path="/employee/:id" element={admin(<EmployeeDetails />)} />
-                <Route path="/add-employee" element={admin(<AddEmployee />)} />
-                <Route path="/edit-employee/:id" element={admin(<EditEmployee />)} />
+                <Route path="/add-employee" element={admin(<DemoWriteRoute><AddEmployee /></DemoWriteRoute>)} />
+                <Route path="/edit-employee/:id" element={admin(<DemoWriteRoute><EditEmployee /></DemoWriteRoute>)} />
                 <Route path="/departments" element={admin(<Departments />)} />
                 <Route path="/designations" element={admin(<Designations />)} />
                 <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-                <Route path="/add-attendance" element={admin(<AddAttendance />)} />
-                <Route path="/edit-attendance/:id" element={admin(<EditAttendance />)} />
+                <Route path="/add-attendance" element={admin(<DemoWriteRoute><AddAttendance /></DemoWriteRoute>)} />
+                <Route path="/edit-attendance/:id" element={admin(<DemoWriteRoute><EditAttendance /></DemoWriteRoute>)} />
                 <Route path="/users" element={admin(<Users />)} />
-                <Route path="/create-user" element={admin(<CreateUser />)} />
-                <Route path="/edit-user/:id" element={admin(<EditUser />)} />
+                <Route path="/create-user" element={admin(<DemoWriteRoute><CreateUser /></DemoWriteRoute>)} />
+                <Route path="/edit-user/:id" element={admin(<DemoWriteRoute><EditUser /></DemoWriteRoute>)} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />

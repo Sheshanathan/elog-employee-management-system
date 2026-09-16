@@ -411,6 +411,11 @@ export function RowActionsMenu({ items, label = 'Actions', ariaLabel = 'Row acti
   const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, minWidth: 0 });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
+  const isReadOnlyDemo = localStorage.getItem('isDemo') === 'true';
+
+  const isItemDisabled = (item) =>
+    item.disabled ||
+    (isReadOnlyDemo && !['view', 'details', 'employees'].includes(item.key));
 
   useEffect(() => {
     if (!open) return undefined;
@@ -468,7 +473,7 @@ export function RowActionsMenu({ items, label = 'Actions', ariaLabel = 'Row acti
   };
 
   const handleSelect = (item) => {
-    if (item.disabled) return;
+    if (isItemDisabled(item)) return;
     item.onClick?.();
     setOpen(false);
   };
@@ -497,18 +502,22 @@ export function RowActionsMenu({ items, label = 'Actions', ariaLabel = 'Row acti
           role="menu"
           style={menuStyle}
         >
-          {items.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              role="menuitem"
-              className={`row-actions-item${item.danger ? ' is-danger' : ''}${item.disabled ? ' is-disabled' : ''}`}
-              disabled={item.disabled}
-              onClick={() => handleSelect(item)}
-            >
-              {item.label}
-            </button>
-          ))}
+          {items.map((item) => {
+            const disabled = isItemDisabled(item);
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="menuitem"
+                className={`row-actions-item${item.danger ? ' is-danger' : ''}${disabled ? ' is-disabled' : ''}`}
+                disabled={disabled}
+                onClick={() => handleSelect(item)}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>,
         document.body
       )}

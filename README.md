@@ -41,8 +41,23 @@ The application intentionally has no public registration page.
 - An Admin creates employee records and login accounts.
 - An Employee can access only employee self-service functionality.
 - Frontend route guards improve navigation, while backend authentication and role middleware enforce the actual permissions.
+- The public Demo Admin can view administrative screens but every authenticated
+  write request is rejected by the backend.
 
 A new, empty database requires a controlled one-time process to create the first Admin. Do not add an unrestricted public Admin-registration endpoint.
+
+### Public demo accounts
+
+| Experience | Email | Password | Access |
+| --- | --- | --- | --- |
+| Demo Admin | `demo.admin@example.com` | `demo@Admin1` | Read-only administrative access |
+| Demo Employee | `demo.employee@example.com` | `demo@Employee1` | Employee self-service demo |
+
+Create the Demo Admin from the normal Admin-only **Create User** screen using
+the exact Admin email above. The backend automatically marks that account as a
+read-only demo. Demo Admin password resets and all authenticated write methods
+(`POST`, `PUT`, `PATCH`, and `DELETE`) are blocked. Never reuse either demo
+password for a real account.
 
 ## Technology
 

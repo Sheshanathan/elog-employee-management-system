@@ -2,6 +2,8 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Employee = require("../models/Employee");
 
+const DEMO_ADMIN_EMAIL = "demo.admin@example.com";
+
 async function auth(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
@@ -20,7 +22,7 @@ async function auth(req, res, next) {
         );
 
         const user = await User.findById(decoded.id)
-            .select("_id role isActive employee");
+            .select("_id email role isActive isDemo employee");
 
         if (!user) {
             return res.status(401).json({
@@ -53,12 +55,35 @@ async function auth(req, res, next) {
             }
         }
 
+        const isDemo = Boolean(user.isDemo) || (
+            user.role === "Admin" &&
+            user.email?.trim().toLowerCase() ===
+                DEMO_ADMIN_EMAIL
+        );
+
         req.user = {
             id: user._id,
             role: user.role,
             isActive: user.isActive,
+            isDemo,
             employee: user.employee
         };
+
+        const readOnlyMethods = new Set([
+            "GET",
+            "HEAD",
+            "OPTIONS"
+        ]);
+
+        if (
+            isDemo &&
+            !readOnlyMethods.has(req.method)
+        ) {
+            return res.status(403).json({
+                message:
+                    "This is a read-only demo account. Changes are disabled."
+            });
+        }
 
         next();
 

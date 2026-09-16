@@ -12,10 +12,20 @@ import "../styles/design-system.css";
 const EMAIL_PATTERN =
     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
-const DEMO_CREDENTIALS = {
-    email: "demo.employee@example.com",
-    password: "demo@Employee1"
-};
+const DEMO_ACCOUNTS = [
+    {
+        role: "Admin",
+        description: "Explore management features with read-only access.",
+        email: "demo.admin@example.com",
+        password: "demo@Admin1"
+    },
+    {
+        role: "Employee",
+        description: "Explore the employee self-service experience.",
+        email: "demo.employee@example.com",
+        password: "demo@Employee1"
+    }
+];
 
 function Login() {
     const [email, setEmail] = useState("");
@@ -132,6 +142,7 @@ function Login() {
             login({
                 token: response.data.token,
                 role: response.data.role,
+                isDemo: response.data.isDemo,
                 name:
                     response.data.name ||
                     getUserDisplayName(response.data) ||
@@ -213,9 +224,9 @@ function Login() {
         }
     }
 
-    function fillDemoCredentials() {
-        setEmail(DEMO_CREDENTIALS.email);
-        setPassword(DEMO_CREDENTIALS.password);
+    function fillDemoCredentials(account) {
+        setEmail(account.email);
+        setPassword(account.password);
         setErrors({
             email: "",
             password: "",
@@ -250,36 +261,55 @@ function Login() {
                     <div className="login-demo-heading">
                         <div>
                             <h2 id="demo-login-title">
-                                Demo Employee Login
+                                Demo Access
                             </h2>
                             <p>
-                                Explore the employee experience with
-                                fictional data.
+                                Choose a role and explore using fictional data.
                             </p>
                         </div>
-                        <span className="login-demo-badge">
-                            Employee
-                        </span>
                     </div>
 
-                    <dl className="login-demo-credentials">
-                        <div>
-                            <dt>Email</dt>
-                            <dd>{DEMO_CREDENTIALS.email}</dd>
-                        </div>
-                        <div>
-                            <dt>Password</dt>
-                            <dd>{DEMO_CREDENTIALS.password}</dd>
-                        </div>
-                    </dl>
+                    <div className="login-demo-options">
+                        {DEMO_ACCOUNTS.map((account) => (
+                            <div
+                                className="login-demo-option"
+                                key={account.role}
+                            >
+                                <div className="login-demo-option-heading">
+                                    <div>
+                                        <strong>{account.role} Demo</strong>
+                                        <p>{account.description}</p>
+                                    </div>
+                                    <span className="login-demo-badge">
+                                        {account.role === "Admin"
+                                            ? "Read only"
+                                            : "Employee"}
+                                    </span>
+                                </div>
 
-                    <button
-                        type="button"
-                        className="login-demo-button"
-                        onClick={fillDemoCredentials}
-                    >
-                        Use Demo Account
-                    </button>
+                                <dl className="login-demo-credentials">
+                                    <div>
+                                        <dt>Email</dt>
+                                        <dd>{account.email}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Password</dt>
+                                        <dd>{account.password}</dd>
+                                    </div>
+                                </dl>
+
+                                <button
+                                    type="button"
+                                    className="login-demo-button"
+                                    onClick={() =>
+                                        fillDemoCredentials(account)
+                                    }
+                                >
+                                    Use {account.role} Demo
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </section>
 
                 <form

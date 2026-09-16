@@ -4,9 +4,11 @@ import Layout from "../components/Layout";
 import { downloadCSV } from "../utils/csv";
 import { Card, LoadingSpinner } from "../components/FormField";
 import { formatCurrency } from "../utils/currency";
+import { useAuth } from "../context/AuthContext";
 import "../styles/design-system.css";
 
 function Dashboard() {
+    const { isDemo } = useAuth();
     const [employees, setEmployees] = useState([]);
     const [departmentReport, setDepartmentReport] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -441,19 +443,23 @@ function Dashboard() {
                             flexWrap: "wrap",
                         }}
                     >
-                        <a
-                            href="/add-employee"
-                            className="btn btn-primary"
-                        >
-                            Add Employee
-                        </a>
+                        {!isDemo && (
+                            <>
+                                <a
+                                    href="/add-employee"
+                                    className="btn btn-primary"
+                                >
+                                    Add Employee
+                                </a>
 
-                        <a
-                            href="/create-user"
-                            className="btn btn-primary"
-                        >
-                            Create User
-                        </a>
+                                <a
+                                    href="/create-user"
+                                    className="btn btn-primary"
+                                >
+                                    Create User
+                                </a>
+                            </>
+                        )}
 
                         <a
                             href="/employees"
@@ -466,7 +472,9 @@ function Dashboard() {
                             href="/attendance"
                             className="btn btn-primary"
                         >
-                            Manage Attendance
+                            {isDemo
+                                ? "View Attendance"
+                                : "Manage Attendance"}
                         </a>
                     </div>
 

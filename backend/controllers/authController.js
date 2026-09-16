@@ -5,6 +5,16 @@ const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
 const crypto = require("crypto");
 
+const DEMO_ADMIN_EMAIL = "demo.admin@example.com";
+
+function isDemoAdminAccount(user) {
+    return Boolean(user?.isDemo) || (
+        user?.role === "Admin" &&
+        user?.email?.trim().toLowerCase() ===
+            DEMO_ADMIN_EMAIL
+    );
+}
+
 
 // =========================
 // LOGIN
@@ -40,6 +50,14 @@ async function login(req, res) {
             return res.status(401).json({
                 message: "Invalid email or password"
             });
+        }
+
+        const isDemo = isDemoAdminAccount(user);
+
+        // Upgrade an account created before the demo flag was introduced.
+        if (isDemo && !user.isDemo) {
+            user.isDemo = true;
+            await user.save();
         }
 
 
@@ -103,6 +121,7 @@ async function login(req, res) {
             message: "Login Successful",
             token,
             role: user.role,
+            isDemo,
             name: displayName,
             email: user.email,
             employee: user.employee
@@ -137,6 +156,15 @@ async function forgotPassword(req, res) {
 
         // Do not reveal whether email exists
         if (!user) {
+            return res.status(200).json({
+                message:
+                    "If an account exists with this email, a reset link has been sent"
+            });
+        }
+
+        // Keep public demo credentials stable and avoid sending reset emails
+        // for an intentionally shared account.
+        if (isDemoAdminAccount(user)) {
             return res.status(200).json({
                 message:
                     "If an account exists with this email, a reset link has been sent"
@@ -419,6 +447,13 @@ async function resetPassword(req, res) {
             });
         }
 
+        if (isDemoAdminAccount(user)) {
+            return res.status(403).json({
+                message:
+                    "Password changes are disabled for the demo account"
+            });
+        }
+
 
         const hashedPassword = await bcrypt.hash(
             password,
@@ -509,6 +544,13 @@ async function validateResetToken(req, res) {
 
 
         if (!user) {
+            return res.status(400).json({
+                message:
+                    "Invalid or expired reset link. Please request a new reset link."
+            });
+        }
+
+        if (isDemoAdminAccount(user)) {
             return res.status(400).json({
                 message:
                     "Invalid or expired reset link. Please request a new reset link."

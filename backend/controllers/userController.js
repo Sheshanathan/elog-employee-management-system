@@ -5,6 +5,7 @@ const Employee = require("../models/Employee");
 const { EMPLOYEE_NESTED_POPULATE } = require("../utils/employeeHelpers");
 
 const DEMO_ACCOUNT_EMAIL = "demo.employee@example.com";
+const DEMO_ADMIN_EMAIL = "demo.admin@example.com";
 
 
 /*
@@ -98,6 +99,16 @@ exports.createUser = async (req, res) => {
             });
         }
 
+        const isDemoAdmin =
+            normalizedEmail === DEMO_ADMIN_EMAIL;
+
+        if (isDemoAdmin && role !== "Admin") {
+            return res.status(400).json({
+                message:
+                    "The demo administrator email must use the Admin role"
+            });
+        }
+
         /*
          * Employee accounts must be linked
          * to an Employee record.
@@ -147,6 +158,7 @@ exports.createUser = async (req, res) => {
             email: normalizedEmail,
             password: hashedPassword,
             role,
+            isDemo: isDemoAdmin,
             employee:
                 role === "Employee"
                     ? employee
@@ -434,7 +446,12 @@ exports.getMyProfile = async (req, res) => {
             });
         }
 
-        res.status(200).json(user);
+        const profile = user.toObject();
+        profile.isDemo = Boolean(
+            req.user.isDemo || profile.isDemo
+        );
+
+        res.status(200).json(profile);
 
     } catch (error) {
         console.error(
